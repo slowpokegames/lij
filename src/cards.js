@@ -171,6 +171,34 @@
     return { defs, body: `<g clip-path="url(#${P}c)">${g}</g>` };
   }
 
+  // Abstract faces (SET-like): the card's 4 emblems, one per row, in strip order.
+  // 'emblems': each as a big colored badge. 'traits': a symbol from its yes/no traits —
+  // moving = dome, still = triangle; warm = orange, cool = blue; high points up, low points down.
+  // 'traits-icon': the trait symbol with the emblem's icon inside.
+  const TRAIT_C = [['#2F6DB5', '#1F4F8A'], ['#E8792A', '#B8561A']]; // [cool, warm] fill, edge
+  function traitShape(i) {
+    const [still, warm, high] = EMBLEMS[i].b, s = high ? 1 : -1;
+    const d = still
+      ? `M-56 ${29 * s} L0 ${-29 * s} L56 ${29 * s}Z`
+      : `M-56 ${29 * s} A56 58 0 0 ${high ? 1 : 0} 56 ${29 * s}Z`;
+    return { d, fill: TRAIT_C[warm][0], edge: TRAIT_C[warm][1], iy: (still ? 10 : 6) * s };
+  }
+  function abstractFace(set, style, W, Hh) {
+    const rows = STRIP.filter((i) => set.includes(i)), cx = W / 2, step = Hh / 4;
+    let g = `<rect x="0" y="0" width="${W}" height="${Hh}" rx="10" fill="#FFFDF8"/>`;
+    rows.forEach((i, k) => {
+      const cy = step * (k + 0.5);
+      if (style === 'emblems') {
+        g += `<rect x="${cx - 70}" y="${cy - 31}" width="140" height="62" rx="31" fill="${EMBLEMS[i].c}"/>` + icon(i, cx, cy, 44, EMBLEMS[i].ink, 2.6);
+      } else {
+        const t = traitShape(i);
+        g += `<path transform="translate(${cx} ${cy})" d="${t.d}" fill="${t.fill}" stroke="${t.edge}" stroke-width="2.5" stroke-linejoin="round"/>`;
+        if (style === 'traits-icon') g += icon(i, cx, cy + t.iy, 26, '#FFFFFF', 2.2);
+      }
+    });
+    return g;
+  }
+
   function topBand(set) {
     let s = `<rect x="0" y="0" width="250" height="42" fill="#EEE8DA"/><line x1="0" y1="42" x2="250" y2="42" stroke="#DED5C3" stroke-width="1"/>`;
     STRIP.forEach((i, k) => {
@@ -187,7 +215,7 @@
     const omen = isOmen(set);
     const top = opts.layout === 'top';
     const SW = top ? 234 : 190, SH = top ? 284 : 326, SHz = top ? 158 : 186;
-    const sc = scene(set, id, SW, SH, SHz);
+    const sc = opts.face && opts.face !== 'scene' ? { defs: '', body: abstractFace(set, opts.face, SW, SH) } : scene(set, id, SW, SH, SHz);
     const sx = top ? 8 : 52, sy = top ? 50 : 12;
     let s = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 250 350" width="${opts.width || 250}" height="${opts.height || 350}">`;
     s += `<defs>${sc.defs}</defs>`;

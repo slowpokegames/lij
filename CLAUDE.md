@@ -29,6 +29,7 @@ In `src/cards.js`, `EMBLEMS[i].b` = [still?, warm?, high?] bits. Flower and Snow
 - Poker size 2.5" × 3.5" (SVG viewBox 250 × 350).
 - **Left strip** of 8 fixed emblem slots (filled = on card, dashed ghost = missing). Tim chose this over a top band (`design/top-band-vs-left-strip.png`) because it reads in a fanned hand. `cardSVG(set, {layout:'top'})` still exists but is unused.
 - Central **scene** built from the emblems: Sun/Moon set day, night, dusk (both) or cloudy (neither); Mountains on the horizon; Water a lake; Snow white ground + flakes + frosted tree; Flower wildflowers (crocuses in snow); Leaves a tree; Fire a campfire. Otherwise a green meadow.
+- **Second deck, emblem badges** (`cardSVG(set, {face:'emblems'})`): same strip, but the panel shows the card's 4 emblems as big colored pills stacked in strip order, SET-style. Tim chose it over trait-symbol faces (`face:'traits'` / `'traits-icon'`: moving = dome, still = triangle, warm = orange, cool = blue, high points up, low points down), which still exist. Comparison: `design/face-styles.png` (`npm run faces`).
 - Back: emblems in a ring around "Lij" with mountain silhouettes.
 
 ## Games (all in `src/games.src.html`)
@@ -40,6 +41,8 @@ npm install && npx playwright install chromium
 npm run build      # dist/Lij-games.html (single self-contained page; cards.js inlined)
 npm run pdf        # dist/Lij-deck-print.pdf (8 front sheets + 1 back sheet, 9/letter page, crop marks)
 npm run sheet      # dist/contact-sheet.png
+npm run pdf:emblems    # dist/Lij-deck-print-emblems.pdf (emblem-badge deck)
+npm run sheet:emblems  # dist/contact-sheet-emblems.png
 npm test           # builds, then plays every game headlessly and prints results
 ```
 Edit `src/cards.js` for art and `src/games.src.html` for game logic/UI; never edit `dist/Lij-games.html` directly.

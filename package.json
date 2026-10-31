@@ -7,7 +7,10 @@
     "pdf": "cd dist && node ../scripts/pdf.js",
     "sheet": "cd dist && node ../scripts/sheet.js \"\" contact-sheet.png",
     "test": "npm run build && cd dist && node ../scripts/test.js",
-    "loop-check": "node scripts/solve.js"
+    "loop-check": "node scripts/solve.js",
+    "faces": "cd design && node ../scripts/faces.js",
+    "pdf:emblems": "cd dist && node ../scripts/pdf.js emblems",
+    "sheet:emblems": "cd dist && node ../scripts/sheet.js \"\" contact-sheet-emblems.png emblems"
   },
   "devDependencies": {
     "@fontsource/nunito": "5.3.0",
