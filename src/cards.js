@@ -38,7 +38,8 @@
         s += `<circle cx="23" cy="${y}" r="12.5" fill="none" stroke="#D3C9B5" stroke-width="1.2" stroke-dasharray="2.6 2.6"/>` + icon(i, 23, y, 14, '#D6CDBA', 1.3);
       }
     });
-    s += `<text x="23" y="334" text-anchor="middle" font-family="Nunito, Verdana, sans-serif" font-weight="800" font-size="12" fill="#9A8F7B" letter-spacing="1">Lij</text>`;
+    // tiny logo at the foot of the strip: heavier strokes and a wider i gap so it holds up this small
+    s += `<g transform="translate(${23 - 93 * 0.125} ${333 - 101 * 0.125}) scale(0.125)">${logoMark('#9A8F7B', '#4F56A6', 26, 12)}</g>`;
     return s;
   }
 
@@ -231,6 +232,27 @@
     return s + `</svg>`;
   }
 
+  // Lij logo (design/logos/arc-medium, chosen from scripts/logos.js): the i stands just clear of
+  // the L's foot, the j curves around the foot's end on an arc centered there, and the dots are the
+  // Sun and Moon. Drawn in a 200 x 210 box; logoMark returns the shapes, logoSVG a whole image
+  // (opts.tight crops to the letters, x 31–155 and y 21–181, for small uses like a page header).
+  // sw (stroke width) and gap (between the i and the foot) can be raised for very small sizes.
+  function logoMark(ink, moon, sw, gap) {
+    sw = sw || 18; gap = gap == null ? 6 : gap;
+    const R = 12.96 * Math.sqrt(sw / 18), mx = 146, y = 56;
+    return `<path d="M40 30 V140 H114 M88 88 V${140 - sw - gap} M146 88 V140 A32 32 0 0 1 114 172 H60" fill="none" stroke="${ink}" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round"/>` +
+      `<circle cx="88" cy="${y}" r="${(12 * Math.sqrt(sw / 18)).toFixed(2)}" fill="#E3A21A"/>` +
+      `<path d="M${mx + R * 0.25} ${y - R} A${R} ${R} 0 1 0 ${mx + R * 0.95} ${y + R * 0.35} A${R * 0.82} ${R * 0.82} 0 0 1 ${mx + R * 0.25} ${y - R}Z" fill="${moon || '#F6EFC9'}"/>`;
+  }
+  function logoSVG(opts) {
+    opts = opts || {};
+    const inner = opts.badge
+      ? `<rect x="4" y="4" width="192" height="202" rx="30" fill="#2B2F5E" stroke="#C9A85A" stroke-width="4"/><g transform="translate(22 14) scale(.82)">${logoMark('#F7F4ED')}</g>`
+      : logoMark(opts.ink || '#F7F4ED', opts.moon);
+    const tight = opts.tight && !opts.badge;
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${tight ? '29 19 128 164' : '0 0 200 210'}" width="${opts.width || (tight ? 128 : 200)}" height="${opts.height || (tight ? 164 : 210)}"${opts.label ? ` role="img" aria-label="${opts.label}"` : ''}>${inner}</svg>`;
+  }
+
   function backSVG(opts) {
     opts = opts || {};
     let s = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 250 350" width="${opts.width || 250}" height="${opts.height || 350}">`;
@@ -244,10 +266,12 @@
       s += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="17" fill="${EMBLEMS[i].c}" stroke="#F7F4ED" stroke-width="1.5"/>` + icon(i, x, y, 20, EMBLEMS[i].ink, 1.9);
     });
     s += `<circle cx="${cx}" cy="${cy}" r="44" fill="none" stroke="#C9A85A" stroke-width="1" opacity="0.6"/>`;
-    s += `<text x="${cx}" y="${cy + 12}" text-anchor="middle" font-family="Nunito, Verdana, sans-serif" font-weight="800" font-size="36" fill="#F7F4ED" letter-spacing="2">Lij</text>`;
+    // logo centered in the gold ring (its shapes span x 31–155, y 21–181 of the 200 x 210 box)
+    const k = 0.42;
+    s += `<g transform="translate(${cx - 93 * k} ${cy - 101 * k}) scale(${k})">${logoMark('#F7F4ED')}</g>`;
     return s + `</svg>`;
   }
 
-  const api = { EMBLEMS, STRIP, CARDS, mask, isOmen, shared, cardSVG, backSVG, icon };
+  const api = { EMBLEMS, STRIP, CARDS, mask, isOmen, shared, cardSVG, backSVG, icon, logoSVG };
   if (typeof module !== 'undefined') module.exports = api; else root.Lij = api;
 })(this);

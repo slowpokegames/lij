@@ -21,9 +21,9 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .wrap{max-width:1600px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--table);border-bottom:1px solid var(--line)}
 header .wrap{display:flex;align-items:center;gap:20px;flex-wrap:wrap;padding-block:12px}
-.brand{display:flex;align-items:baseline;gap:10px}
-.brand b{font-family:var(--display);font-weight:900;font-size:30px;letter-spacing:.04em;color:var(--cream)}
-.brand span{color:var(--muted);font-size:13px}
+.brand{display:flex;align-items:center;gap:10px}
+.brand .logo svg{display:block;height:40px;width:auto}
+.brand .tag{color:var(--muted);font-size:13px}
 nav{display:flex;gap:6px;flex-wrap:wrap}
 nav a{color:var(--muted);text-decoration:none;font-weight:700;font-size:15px;padding:7px 12px;border-radius:999px;border:1px solid transparent}
 nav a:hover{color:var(--cream);border-color:var(--line)}
@@ -56,6 +56,7 @@ label.chk{display:flex;gap:8px;align-items:center;color:var(--muted);font-weight
 .card.no{box-shadow:0 0 0 4px var(--bad)}
 .card.hint{box-shadow:0 0 0 4px var(--muted)}
 .card.dim{opacity:.28}
+.card.empty{opacity:.5}
 .card.gone{visibility:hidden}
 .card[disabled]{cursor:default}
 .card[disabled]:hover{transform:none}
@@ -110,7 +111,8 @@ kbd{font-family:inherit;font-weight:800;background:var(--raise);border:1px solid
    rules fold behind a "How to play" button so the board starts near the top. */
 @media (max-width:560px){
   section h1{font-size:28px;display:inline-block}
-  .brand span{display:none}
+  .brand .tag{display:none}
+  .brand .logo svg{height:34px}
   header{position:static}
   header .wrap{row-gap:6px;padding-block:8px}
   .seg{order:1}
@@ -124,7 +126,7 @@ kbd{font-family:inherit;font-weight:800;background:var(--raise);border:1px solid
 </style>
 
 <header><div class="wrap">
-  <div class="brand"><b>Lij</b><span>70 cards · 8 emblems · 4 on each</span></div>
+  <div class="brand"><span class="logo"></span><span class="tag">70 cards · 8 emblems · 4 on each</span></div>
   <nav aria-label="Games">
     <a href="#harmony">Harmony</a><a href="#mirror">Mirror</a><a href="#echo">Echo</a><a href="#seek">Seek</a><a href="#clans">Clans</a><a href="#loop">Great Loop</a><a href="#deck">Deck</a>
   </nav>
@@ -307,7 +309,8 @@ kbd{font-family:inherit;font-weight:800;background:var(--raise);border:1px solid
         s += `<circle cx="23" cy="${y}" r="12.5" fill="none" stroke="#D3C9B5" stroke-width="1.2" stroke-dasharray="2.6 2.6"/>` + icon(i, 23, y, 14, '#D6CDBA', 1.3);
       }
     });
-    s += `<text x="23" y="334" text-anchor="middle" font-family="Nunito, Verdana, sans-serif" font-weight="800" font-size="12" fill="#9A8F7B" letter-spacing="1">Lij</text>`;
+    // tiny logo at the foot of the strip: heavier strokes and a wider i gap so it holds up this small
+    s += `<g transform="translate(${23 - 93 * 0.125} ${333 - 101 * 0.125}) scale(0.125)">${logoMark('#9A8F7B', '#4F56A6', 26, 12)}</g>`;
     return s;
   }
 
@@ -500,6 +503,27 @@ kbd{font-family:inherit;font-weight:800;background:var(--raise);border:1px solid
     return s + `</svg>`;
   }
 
+  // Lij logo (design/logos/arc-medium, chosen from scripts/logos.js): the i stands just clear of
+  // the L's foot, the j curves around the foot's end on an arc centered there, and the dots are the
+  // Sun and Moon. Drawn in a 200 x 210 box; logoMark returns the shapes, logoSVG a whole image
+  // (opts.tight crops to the letters, x 31–155 and y 21–181, for small uses like a page header).
+  // sw (stroke width) and gap (between the i and the foot) can be raised for very small sizes.
+  function logoMark(ink, moon, sw, gap) {
+    sw = sw || 18; gap = gap == null ? 6 : gap;
+    const R = 12.96 * Math.sqrt(sw / 18), mx = 146, y = 56;
+    return `<path d="M40 30 V140 H114 M88 88 V${140 - sw - gap} M146 88 V140 A32 32 0 0 1 114 172 H60" fill="none" stroke="${ink}" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round"/>` +
+      `<circle cx="88" cy="${y}" r="${(12 * Math.sqrt(sw / 18)).toFixed(2)}" fill="#E3A21A"/>` +
+      `<path d="M${mx + R * 0.25} ${y - R} A${R} ${R} 0 1 0 ${mx + R * 0.95} ${y + R * 0.35} A${R * 0.82} ${R * 0.82} 0 0 1 ${mx + R * 0.25} ${y - R}Z" fill="${moon || '#F6EFC9'}"/>`;
+  }
+  function logoSVG(opts) {
+    opts = opts || {};
+    const inner = opts.badge
+      ? `<rect x="4" y="4" width="192" height="202" rx="30" fill="#2B2F5E" stroke="#C9A85A" stroke-width="4"/><g transform="translate(22 14) scale(.82)">${logoMark('#F7F4ED')}</g>`
+      : logoMark(opts.ink || '#F7F4ED', opts.moon);
+    const tight = opts.tight && !opts.badge;
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${tight ? '29 19 128 164' : '0 0 200 210'}" width="${opts.width || (tight ? 128 : 200)}" height="${opts.height || (tight ? 164 : 210)}"${opts.label ? ` role="img" aria-label="${opts.label}"` : ''}>${inner}</svg>`;
+  }
+
   function backSVG(opts) {
     opts = opts || {};
     let s = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 250 350" width="${opts.width || 250}" height="${opts.height || 350}">`;
@@ -513,11 +537,13 @@ kbd{font-family:inherit;font-weight:800;background:var(--raise);border:1px solid
       s += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="17" fill="${EMBLEMS[i].c}" stroke="#F7F4ED" stroke-width="1.5"/>` + icon(i, x, y, 20, EMBLEMS[i].ink, 1.9);
     });
     s += `<circle cx="${cx}" cy="${cy}" r="44" fill="none" stroke="#C9A85A" stroke-width="1" opacity="0.6"/>`;
-    s += `<text x="${cx}" y="${cy + 12}" text-anchor="middle" font-family="Nunito, Verdana, sans-serif" font-weight="800" font-size="36" fill="#F7F4ED" letter-spacing="2">Lij</text>`;
+    // logo centered in the gold ring (its shapes span x 31–155, y 21–181 of the 200 x 210 box)
+    const k = 0.42;
+    s += `<g transform="translate(${cx - 93 * k} ${cy - 101 * k}) scale(${k})">${logoMark('#F7F4ED')}</g>`;
     return s + `</svg>`;
   }
 
-  const api = { EMBLEMS, STRIP, CARDS, mask, isOmen, shared, cardSVG, backSVG, icon };
+  const api = { EMBLEMS, STRIP, CARDS, mask, isOmen, shared, cardSVG, backSVG, icon, logoSVG };
   if (typeof module !== 'undefined') module.exports = api; else root.Lij = api;
 })(this);
 
@@ -525,6 +551,11 @@ kbd{font-family:inherit;font-weight:800;background:var(--raise);border:1px solid
 <script>
 (function(){
 const L = window.Lij, CARDS = L.CARDS, E = L.EMBLEMS, N = CARDS.length;
+// Header logo, and the card-badge version as the browser-tab icon.
+document.querySelector('.brand .logo').innerHTML = L.logoSVG({ label: 'Lij', tight: true });
+const icon = document.createElement('link');
+icon.rel = 'icon'; icon.href = 'data:image/svg+xml,' + encodeURIComponent(L.logoSVG({ badge: true }));
+document.head.appendChild(icon);
 const M = CARDS.map(L.mask);
 const FULL = 255;
 const pop = (x) => { let n = 0; while (x) { n += x & 1; x >>= 1; } return n; };
@@ -634,18 +665,24 @@ function route() {
 const Harmony = (() => {
   let deck, board, sel, score, hintStep, busy = false, round = 0, started = false;
   const ok = (a, b, c) => { const x = M[a] ^ M[b] ^ M[c]; return x === 0 || ($('h-eclipse').checked && x === FULL); };
+  // board holds card ids by slot; null is a face-down slot left by a found card with no replacement.
+  const live = () => board.filter((x) => x != null);
   function sets() {
-    const out = [];
-    for (let i = 0; i < board.length; i++) for (let j = i + 1; j < board.length; j++) for (let k = j + 1; k < board.length; k++)
-      if (ok(board[i], board[j], board[k])) out.push([board[i], board[j], board[k]]);
+    const out = [], b = live();
+    for (let i = 0; i < b.length; i++) for (let j = i + 1; j < b.length; j++) for (let k = j + 1; k < b.length; k++)
+      if (ok(b[i], b[j], b[k])) out.push([b[i], b[j], b[k]]);
     return out;
   }
+  // Deal into face-down slots first, then new slots: up to 15 cards, plus three at a time while
+  // no Harmony is showing.
   function settle() {
-    while (board.length < 15 && deck.length) board.push(deck.pop());
-    while (!sets().length && deck.length) { for (let k = 0; k < 3 && deck.length; k++) board.push(deck.pop()); }
+    const put = () => { const k = board.indexOf(null), c = deck.pop(); if (k >= 0) board[k] = c; else board.push(c); };
+    while (live().length < 15 && deck.length) put();
+    while (!sets().length && deck.length) { for (let k = 0; k < 3 && deck.length; k++) put(); }
   }
   function render(flash) {
-    $('h-board').innerHTML = board.map((i) => cardBtn(i, (sel.includes(i) ? 'sel ' : '') + (flash && flash.cls && flash.ids.includes(i) ? flash.cls : ''))).join('');
+    $('h-board').innerHTML = board.map((i) => i == null ? `<button class="card static empty" disabled aria-label="Empty slot">${BACK}</button>`
+      : cardBtn(i, (sel.includes(i) ? 'sel ' : '') + (flash && flash.cls && flash.ids.includes(i) ? flash.cls : ''))).join('');
     if (flash && flash.fresh) fx(cardEls($('h-board'), flash.fresh), 'deal', flash.fresh.length > 3 ? 30 : 90);
     $('h-score').textContent = score; $('h-left').textContent = deck.length;
   }
@@ -672,20 +709,38 @@ const Harmony = (() => {
       score++; hintStep = 0;
       els.forEach((e) => e.classList.add('ok'));
       say($('h-msg'), ecl ? 'Eclipse!' : 'Harmony!', 'good');
-      const done = sel; sel = [];
-      setTimeout(() => fx(cardEls($('h-board'), done), 'leave', 60), ms(200));
-      setTimeout(() => {
+      const done = sel, r = round; sel = [];
+      const t0 = MOTION ? 250 : 450; // let the green ring show first
+      const finish = () => {
+        if (r !== round) return; // a new game started meanwhile
         busy = false;
         const before = new Set(board);
-        board = board.filter((x) => !done.includes(x));
-        if (board.length < 15 && deck.length) { /* refill in place */ }
-        settle();
-        const fresh = board.filter((x) => !before.has(x));
+        settle(); // tops up, or adds three if no Harmony is showing
+        const fresh = live().filter((x) => !before.has(x));
         const left = sets().length;
         if (!left) say($('h-msg'), `Deck cleared. You found ${score}.`, 'good');
         else say($('h-msg'), (ecl ? 'Eclipse! ' : 'Harmony! ') + left + ' more on the board.', 'good');
-        render({ fresh });
-      }, MOTION ? 760 : 450);
+        if (fresh.length) render({ fresh });
+        else { $('h-score').textContent = score; $('h-left').textContent = deck.length; }
+      };
+      // Each found card flips over in its own slot, so nothing else moves: it comes up as a new card
+      // while the board has fewer than 15 and the deck has cards, and otherwise stays face down.
+      let n = live().length - done.length;
+      done.forEach((id, k) => {
+        const nu = n < 15 && deck.length ? deck.pop() : null, el = cardEls($('h-board'), [id])[0];
+        if (nu != null) n++;
+        board[board.indexOf(id)] = nu;
+        setTimeout(() => {
+          fx(el, 'flip-out');
+          setTimeout(() => {
+            el.classList.remove('sel', 'ok', 'fx-flip-out');
+            if (nu != null) { el.dataset.i = nu; el.setAttribute('aria-label', cardName(nu)); el.innerHTML = face(nu); }
+            else { el.removeAttribute('data-i'); el.disabled = true; el.classList.add('static', 'empty'); el.setAttribute('aria-label', 'Empty slot'); el.innerHTML = BACK; }
+            fx(el, 'flip-in');
+          }, ms(160));
+        }, t0 + ms(k * 90));
+      });
+      setTimeout(finish, t0 + ms(2 * 90 + 160 + 300));
     } else {
       const x = M[a] ^ M[b] ^ M[c];
       const odd = E.filter((_, e) => x >> e & 1).map((e) => e.n);
