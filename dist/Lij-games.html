@@ -1,4 +1,5 @@
 <title>Lij</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -78,7 +79,7 @@ label.chk{display:flex;gap:8px;align-items:center;color:var(--muted);font-weight
 .end-glow{box-shadow:0 0 0 3px var(--gold)}
 .big{width:min(180px,40vw)}
 .secret{width:min(150px,36vw)}
-.pile{width:min(150px,38vw)}
+.pile{width:min(150px,35vw)}
 .legend{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px;margin:0 0 18px}
 .legend div{display:flex;gap:10px;align-items:center;color:var(--muted);font-size:15px}
 .legend b{color:var(--cream)}
@@ -86,7 +87,22 @@ kbd{font-family:inherit;font-weight:800;background:var(--raise);border:1px solid
 .seg{display:flex;margin-left:auto;border:1px solid var(--line);border-radius:999px;padding:2px}
 .seg button{font:inherit;font-weight:700;font-size:14px;color:var(--muted);background:none;border:0;border-radius:999px;padding:5px 12px;cursor:pointer}
 .seg button[aria-pressed="true"]{background:var(--raise);color:var(--cream)}
-@media (max-width:560px){section h1{font-size:28px}.brand span{display:none}.seg{order:1}nav{order:2}}
+.howto{display:none}
+/* Phones: header scrolls away, game tabs sit in one sideways-scrolling row, and each game's
+   rules fold behind a "How to play" button so the board starts near the top. */
+@media (max-width:560px){
+  section h1{font-size:28px;display:inline-block}
+  .brand span{display:none}
+  header{position:static}
+  header .wrap{row-gap:6px;padding-block:8px}
+  .seg{order:1}
+  nav{order:2;width:100%;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin-inline:-4px}
+  nav::-webkit-scrollbar{display:none}
+  nav a{flex:none;padding:6px 11px}
+  .lede{display:none}
+  .rules-open .lede{display:block}
+  .howto{display:inline-block;margin-left:10px;vertical-align:5px;font:inherit;font-weight:700;font-size:14px;color:var(--gold);background:none;border:1px solid var(--line);border-radius:999px;padding:3px 11px;cursor:pointer}
+}
 </style>
 
 <header><div class="wrap">
@@ -162,7 +178,7 @@ kbd{font-family:inherit;font-weight:800;background:var(--raise);border:1px solid
   <div class="row">
     <div class="col felt" style="flex:1 1 300px">
       <span class="label">Ask about a card</span>
-      <div class="grid" id="s-grid" style="grid-template-columns:repeat(auto-fill,minmax(min(118px,24vw),1fr));gap:10px"></div>
+      <div class="grid" id="s-grid" style="grid-template-columns:repeat(auto-fill,minmax(min(118px,22vw),1fr));gap:10px"></div>
     </div>
     <div class="col" style="flex:0 1 300px;position:sticky;top:92px">
       <div class="row">
@@ -527,9 +543,11 @@ function say(el, text, kind) { el.textContent = text; el.className = 'msg ' + (k
 /* ---------- fitting boards to the window ---------- */
 // A [data-fit] grid picks the column count that gives the largest cards while the whole
 // page, including everything below the board, fits in the window (ties go to fuller rows).
-// If even MIN_W cards can't fit, the page scrolls: rows fill the width (phones) but cards
+// If even minimum-size cards can't fit, the page scrolls: rows fill the width (phones) but cards
 // grow at most to FALLBACK_W, since bigger ones would only scroll further (short windows).
-const MIN_W = 84, MAX_W = 180, FALLBACK_W = 105;
+const PHONE = matchMedia('(max-width:560px)');
+const MAX_W = 180, FALLBACK_W = 105;
+const minW = () => (PHONE.matches ? 64 : 84); // phones accept smaller cards to fit a whole board
 function fitGrid(el) {
   const n = el.children.length, W = el.clientWidth;
   if (!n || !W) return;
@@ -545,13 +563,21 @@ function fitGrid(el) {
     if (w > best.w + 1 || (w > best.w - 1 && blanks < best.blanks)) best = { w, c, blanks };
   }
   let { w, c } = best;
-  if (w < MIN_W) { c = Math.min(n, Math.max(1, Math.floor((W + gap) / (MIN_W + gap)))); w = Math.min((W - gap * (c - 1)) / c, FALLBACK_W); }
+  if (w < minW()) { c = Math.min(n, Math.max(1, Math.floor((W + gap) / (minW() + gap)))); w = Math.min((W - gap * (c - 1)) / c, FALLBACK_W); }
   el.style.gridTemplateColumns = `repeat(${c}, ${Math.floor(w)}px)`;
 }
 const fitAll = () => document.querySelectorAll('section:not([hidden]) [data-fit]').forEach(fitGrid);
 const refit = new MutationObserver(fitAll);
 document.querySelectorAll('[data-fit]').forEach((el) => refit.observe(el, { childList: true }));
 window.addEventListener('resize', fitAll);
+
+// Phones: a "How to play" button after each title shows or hides that game's rules.
+document.querySelectorAll('section h1').forEach((h) => {
+  const b = document.createElement('button');
+  b.className = 'howto'; b.textContent = 'How to play'; b.setAttribute('aria-expanded', 'false');
+  b.onclick = () => { const open = h.parentElement.classList.toggle('rules-open'); b.setAttribute('aria-expanded', open); b.textContent = open ? 'Hide rules' : 'How to play'; fitAll(); };
+  h.after(b);
+});
 
 /* ---------- routing ---------- */
 const VIEWS = ['harmony', 'mirror', 'echo', 'seek', 'clans', 'loop', 'deck'];
