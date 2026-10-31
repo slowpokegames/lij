@@ -731,9 +731,17 @@ const Mirror = (() => {
     $('m-moves').textContent = moves; $('m-pairs').textContent = done.size / 2 + ' / ' + cards.length / 2;
   }
   const btn = (p) => $('m-board').querySelector(`[data-p="${p}"]`);
+  // A mismatched pair stays face up until the next tap, which turns it back down.
+  function hidePair() {
+    up.forEach((q) => { const e = btn(q); e.classList.remove('no'); e.setAttribute('aria-label', 'Face-down card'); turnOver(e, BACK); });
+    up = []; say($('m-msg'), '', '');
+  }
   // Turning a card face up only swaps that card, so a quick second tap isn't lost to a redraw.
+  // Tapping a new card while a mismatched pair is showing hides the pair and turns the new card up.
   function flip(p) {
-    if (lock || up.includes(p) || done.has(p) || up.length >= 2) return;
+    if (lock || done.has(p)) return;
+    if (up.length === 2) { const pair = up.includes(p); hidePair(); if (pair) return; }
+    if (up.includes(p)) return;
     up.push(p);
     const el = btn(p); el.setAttribute('aria-label', cardName(cards[p]));
     turnOver(el, face(cards[p]));
@@ -748,16 +756,15 @@ const Mirror = (() => {
         render(); fx([btn(a), btn(b)], 'bounce');
       } else {
         render(up); fx([btn(a), btn(b)], 'shake');
-        say($('m-msg'), `They share ${share(cards[a], cards[b])} emblem${share(cards[a], cards[b]) === 1 ? '' : 's'}. Opposites share none.`, 'bad');
-        setTimeout(() => {
-          up = [];
-          [a, b].forEach((q) => { const e = btn(q); e.classList.remove('no'); e.setAttribute('aria-label', 'Face-down card'); turnOver(e, BACK); });
-          setTimeout(() => { lock = false; render(); }, ms(480));
-        }, 1100);
+        say($('m-msg'), `They share ${share(cards[a], cards[b])} emblem${share(cards[a], cards[b]) === 1 ? '' : 's'}. Opposites share none. Tap to turn them back.`, 'bad');
+        lock = false;
       }
     }, ms(460));
   }
-  $('m-board').addEventListener('click', (ev) => { const b = ev.target.closest('.card'); if (b && !b.disabled) flip(+b.dataset.p); });
+  $('m-board').closest('.felt').addEventListener('click', (ev) => {
+    const b = ev.target.closest('.card');
+    if (b) { if (!b.disabled) flip(+b.dataset.p); } else if (up.length === 2 && !lock) hidePair(); // a tap on the table
+  });
   $('m-new').onclick = newGame; $('m-size').onchange = newGame;
   return { init() { if (!started) { started = true; newGame(); } } };
 })();
