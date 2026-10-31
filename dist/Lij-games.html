@@ -10,6 +10,7 @@
   --table:#1B1F44; --felt:#242958; --raise:#2F356E; --line:#454C8C;
   --cream:#F7F4ED; --muted:#B4B8DA; --gold:#D9B565; --gold-ink:#2A1F06;
   --good:#7BD39A; --bad:#F08A6E;
+  --spring:cubic-bezier(.34,1.56,.64,1);
   --display:"Nunito", "Trebuchet MS", system-ui, sans-serif;
   --body:"Nunito", "Segoe UI", system-ui, sans-serif;
   color-scheme:dark;
@@ -45,10 +46,12 @@ label.chk{display:flex;gap:8px;align-items:center;color:var(--muted);font-weight
 .felt{background:var(--felt);border:1px solid var(--line);border-radius:18px;padding:18px}
 .grid{display:grid;gap:12px}
 [data-fit]{justify-content:center}
-.card{display:block;padding:0;border:0;background:none;cursor:pointer;aspect-ratio:250/350;width:100%;border-radius:7%/5%;overflow:hidden;box-shadow:0 2px 0 rgba(0,0,0,.35),0 6px 14px rgba(0,0,0,.25);transition:transform .15s,box-shadow .15s,opacity .2s}
+.card{display:block;padding:0;border:0;background:none;cursor:pointer;aspect-ratio:250/350;width:100%;border-radius:7%/5%;overflow:hidden;box-shadow:0 2px 0 rgba(0,0,0,.35),0 6px 14px rgba(0,0,0,.25);transition:transform .15s,translate .75s cubic-bezier(.25,.8,.3,1),scale .75s cubic-bezier(.25,.8,.3,1),box-shadow .3s,opacity .2s;
+  /* pick-up uses Triskele's react-spring (mass 5, tension 500, friction 80) sampled as linear(); older browsers keep the line above */
+  transition:transform .15s,translate .75s linear(0, .041, .139, .265, .396, .523, .635, .732, .81, .873, .92, .955, .98, .996, 1.006, 1.012, 1.015, 1.015, 1.014, 1.013, 1.011, 1.009, 1.007, 1.005, 1),scale .75s linear(0, .041, .139, .265, .396, .523, .635, .732, .81, .873, .92, .955, .98, .996, 1.006, 1.012, 1.015, 1.015, 1.014, 1.013, 1.011, 1.009, 1.007, 1.005, 1),box-shadow .3s,opacity .2s}
 .card svg{display:block;width:100%;height:100%}
 .card:hover{transform:translateY(-3px)}
-.card.sel{box-shadow:0 0 0 4px var(--gold),0 10px 18px rgba(0,0,0,.4);transform:translateY(-6px)}
+.card.sel{box-shadow:0 0 0 4px var(--gold),0 10px 18px rgba(0,0,0,.4);translate:0 -6px;scale:1.08;position:relative;z-index:1}
 .card.ok{box-shadow:0 0 0 4px var(--good)}
 .card.no{box-shadow:0 0 0 4px var(--bad)}
 .card.hint{box-shadow:0 0 0 4px var(--muted)}
@@ -57,8 +60,23 @@ label.chk{display:flex;gap:8px;align-items:center;color:var(--muted);font-weight
 .card[disabled]{cursor:default}
 .card[disabled]:hover{transform:none}
 .static{cursor:default}.static:hover{transform:none}
-@keyframes pop{from{transform:scale(.92);opacity:.4}to{transform:none;opacity:1}}
-@media (prefers-reduced-motion:no-preference){.card.new{animation:pop .25s ease-out}}
+/* Card effects (after Triskele and Zoni), added by fx() in the script:
+   flip-out / flip-in: the two halves of turning a card over; deal: a card arrives from the deck;
+   leave: a collected card lifts, flips away and fades; shake: a wrong choice; bounce: a right one. */
+@keyframes fx-flip-out{to{transform:perspective(700px) rotateY(-90deg)}}
+@keyframes fx-flip-in{from{transform:perspective(700px) rotateY(90deg)}to{transform:perspective(700px) rotateY(0)}}
+@keyframes fx-deal{from{transform:translateY(-28px) perspective(700px) rotateY(90deg);opacity:0}to{transform:none;opacity:1}}
+@keyframes fx-leave{40%{transform:translateY(-14px) scale(1.08);opacity:1}to{transform:translateY(-14px) scale(1.08) perspective(700px) rotateY(90deg);opacity:0}}
+@keyframes fx-shake{20%{rotate:-5deg}40%{rotate:5deg}60%{rotate:-4deg}80%{rotate:3deg}}
+@keyframes fx-bounce{40%{scale:1.1}}
+@media (prefers-reduced-motion:no-preference){
+  .fx-flip-out{animation:fx-flip-out .16s ease-in forwards}
+  .fx-flip-in{animation:fx-flip-in .3s var(--spring) both}
+  .fx-deal{animation:fx-deal .38s ease-out both}
+  .fx-leave{animation:fx-leave .42s ease-in forwards}
+  .fx-shake{animation:fx-shake .42s ease-in-out}
+  .fx-bounce{animation:fx-bounce .4s var(--spring)}
+}
 @media (prefers-reduced-motion:reduce){.card,.card:hover{transition:none;transform:none}}
 .row{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start}
 .col{display:flex;flex-direction:column;gap:10px;min-width:0}
@@ -538,6 +556,25 @@ const cardName = (i) => CARDS[i].map((e) => E[e].n).join(', ');
 function iconSVG(e, size) {
   return `<svg viewBox="0 0 30 30" width="${size || 22}" height="${size || 22}" aria-hidden="true"><circle cx="15" cy="15" r="14" fill="${E[e].c}"/>${L.icon(e, 15, 15, 18, E[e].ink, 1.9)}</svg>`;
 }
+// Card effects: fx(elements, name, stagger) plays one of the fx-* animations above, each
+// element starting `stagger` ms after the last. ms() zeroes waits when motion is reduced.
+const MOTION = !matchMedia('(prefers-reduced-motion: reduce)').matches;
+const ms = (t) => (MOTION ? t : 0);
+const LIFT_MS = 550; // a picked-up card's spring has peaked by then (see .card transition)
+function fx(els, name, stagger) {
+  [].concat(els).filter(Boolean).forEach((el, k) => {
+    el.classList.remove('fx-' + name); void el.offsetWidth;
+    el.style.animationDelay = stagger ? k * stagger + 'ms' : '';
+    el.classList.add('fx-' + name);
+    if (name !== 'leave' && name !== 'flip-out') el.addEventListener('animationend', () => el.classList.remove('fx-' + name), { once: true });
+  });
+}
+// Turn one card element over to new contents: flip the old face away, swap, flip the new one in.
+function turnOver(el, html, done) {
+  fx(el, 'flip-out');
+  setTimeout(() => { el.classList.remove('fx-flip-out'); el.innerHTML = html; fx(el, 'flip-in'); done && done(); }, ms(160));
+}
+const cardEls = (box, ids) => ids.map((i) => box.querySelector(`.card[data-i="${i}"]`));
 function say(el, text, kind) { el.textContent = text; el.className = 'msg ' + (kind || ''); }
 
 /* ---------- fitting boards to the window ---------- */
@@ -595,7 +632,7 @@ function route() {
 
 /* ---------- Harmony ---------- */
 const Harmony = (() => {
-  let deck, board, sel, score, hintStep, started = false;
+  let deck, board, sel, score, hintStep, busy = false, round = 0, started = false;
   const ok = (a, b, c) => { const x = M[a] ^ M[b] ^ M[c]; return x === 0 || ($('h-eclipse').checked && x === FULL); };
   function sets() {
     const out = [];
@@ -608,23 +645,37 @@ const Harmony = (() => {
     while (!sets().length && deck.length) { for (let k = 0; k < 3 && deck.length; k++) board.push(deck.pop()); }
   }
   function render(flash) {
-    $('h-board').innerHTML = board.map((i) => cardBtn(i, (sel.includes(i) ? 'sel ' : '') + (flash && flash.cls && flash.ids.includes(i) ? flash.cls : '') + (flash && flash.fresh && flash.fresh.includes(i) ? ' new' : ''))).join('');
+    $('h-board').innerHTML = board.map((i) => cardBtn(i, (sel.includes(i) ? 'sel ' : '') + (flash && flash.cls && flash.ids.includes(i) ? flash.cls : ''))).join('');
+    if (flash && flash.fresh) fx(cardEls($('h-board'), flash.fresh), 'deal', flash.fresh.length > 3 ? 30 : 90);
     $('h-score').textContent = score; $('h-left').textContent = deck.length;
   }
   function newGame() {
-    deck = shuffle(all()); board = []; sel = []; score = 0; hintStep = 0; settle();
-    say($('h-msg'), sets().length + ' Harmonies are hiding on this board.', 'info'); render();
+    deck = shuffle(all()); board = []; sel = []; score = 0; hintStep = 0; busy = false; round++; settle();
+    say($('h-msg'), sets().length + ' Harmonies are hiding on this board.', 'info'); render({ fresh: board });
   }
   function pick(i) {
+    if (busy) return;
     if (sel.includes(i)) sel = sel.filter((x) => x !== i); else sel.push(i);
-    if (sel.length < 3) { render(); return; }
-    const [a, b, c] = sel;
+    // Change the card already on screen (no redraw) so picking up and putting down animate.
+    const el = cardEls($('h-board'), [i])[0];
+    el.classList.remove('hint'); el.classList.toggle('sel', sel.includes(i));
+    if (sel.length < 3) return;
+    // Let the third card finish lifting before the result (ring, message, shake or leave) shows.
+    busy = true;
+    const r = round;
+    setTimeout(() => { if (r === round) judge(); }, ms(LIFT_MS)); // skipped if a new game began meanwhile
+  }
+  function judge() {
+    const [a, b, c] = sel, els = cardEls($('h-board'), sel);
     if (ok(a, b, c)) {
       const ecl = (M[a] ^ M[b] ^ M[c]) === FULL;
       score++; hintStep = 0;
-      render({ cls: 'ok', ids: sel });
+      els.forEach((e) => e.classList.add('ok'));
+      say($('h-msg'), ecl ? 'Eclipse!' : 'Harmony!', 'good');
       const done = sel; sel = [];
+      setTimeout(() => fx(cardEls($('h-board'), done), 'leave', 60), ms(200));
       setTimeout(() => {
+        busy = false;
         const before = new Set(board);
         board = board.filter((x) => !done.includes(x));
         if (board.length < 15 && deck.length) { /* refill in place */ }
@@ -634,18 +685,19 @@ const Harmony = (() => {
         if (!left) say($('h-msg'), `Deck cleared. You found ${score}.`, 'good');
         else say($('h-msg'), (ecl ? 'Eclipse! ' : 'Harmony! ') + left + ' more on the board.', 'good');
         render({ fresh });
-      }, 450);
+      }, MOTION ? 760 : 450);
     } else {
       const x = M[a] ^ M[b] ^ M[c];
       const odd = E.filter((_, e) => x >> e & 1).map((e) => e.n);
-      render({ cls: 'no', ids: sel });
+      els.forEach((e) => e.classList.add('no'));
+      fx(els, 'shake');
       say($('h-msg'), 'Not quite: ' + odd.join(', ') + (odd.length === 1 ? ' appears' : ' appear') + ' an odd number of times.', 'bad');
       sel = [];
-      setTimeout(() => render(), 650);
+      setTimeout(() => { busy = false; els.forEach((e) => e.classList.remove('sel', 'no')); }, 650);
     }
   }
   function hint() {
-    const s = sets(); if (!s.length) return;
+    const s = sets(); if (busy || !s.length) return;
     hintStep = Math.min(hintStep + 1, 2);
     const show = s[0].slice(0, hintStep);
     sel = [];
@@ -667,6 +719,7 @@ const Mirror = (() => {
     cards = shuffle(reps.flatMap((i) => [i, oppOf[i]]));
     up = []; done = new Set(); moves = 0; lock = false;
     say($('m-msg'), 'Find each card’s opposite.', 'info'); render();
+    fx([...$('m-board').children], 'deal', 25);
   }
   function render(flash) {
     $('m-board').innerHTML = cards.map((i, p) => {
@@ -677,22 +730,32 @@ const Mirror = (() => {
     }).join('');
     $('m-moves').textContent = moves; $('m-pairs').textContent = done.size / 2 + ' / ' + cards.length / 2;
   }
+  const btn = (p) => $('m-board').querySelector(`[data-p="${p}"]`);
+  // Turning a card face up only swaps that card, so a quick second tap isn't lost to a redraw.
   function flip(p) {
-    if (lock || up.includes(p) || done.has(p)) return;
-    up.push(p); render();
+    if (lock || up.includes(p) || done.has(p) || up.length >= 2) return;
+    up.push(p);
+    const el = btn(p); el.setAttribute('aria-label', cardName(cards[p]));
+    turnOver(el, face(cards[p]));
     if (up.length < 2) return;
-    moves++;
+    moves++; lock = true;
     const [a, b] = up;
-    if ((M[cards[a]] ^ M[cards[b]]) === FULL) {
-      done.add(a); done.add(b); up = [];
-      if (done.size === cards.length) say($('m-msg'), `All ${cards.length / 2} pairs in ${moves} turns.`, 'good');
-      else say($('m-msg'), 'Opposites!', 'good');
-      render();
-    } else {
-      lock = true; render(up);
-      say($('m-msg'), `They share ${share(cards[a], cards[b])} emblem${share(cards[a], cards[b]) === 1 ? '' : 's'}. Opposites share none.`, 'bad');
-      setTimeout(() => { up = []; lock = false; render(); }, 1100);
-    }
+    setTimeout(() => {
+      if ((M[cards[a]] ^ M[cards[b]]) === FULL) {
+        done.add(a); done.add(b); up = []; lock = false;
+        if (done.size === cards.length) say($('m-msg'), `All ${cards.length / 2} pairs in ${moves} turns.`, 'good');
+        else say($('m-msg'), 'Opposites!', 'good');
+        render(); fx([btn(a), btn(b)], 'bounce');
+      } else {
+        render(up); fx([btn(a), btn(b)], 'shake');
+        say($('m-msg'), `They share ${share(cards[a], cards[b])} emblem${share(cards[a], cards[b]) === 1 ? '' : 's'}. Opposites share none.`, 'bad');
+        setTimeout(() => {
+          up = [];
+          [a, b].forEach((q) => { const e = btn(q); e.classList.remove('no'); e.setAttribute('aria-label', 'Face-down card'); turnOver(e, BACK); });
+          setTimeout(() => { lock = false; render(); }, ms(480));
+        }, 1100);
+      }
+    }, ms(460));
   }
   $('m-board').addEventListener('click', (ev) => { const b = ev.target.closest('.card'); if (b && !b.disabled) flip(+b.dataset.p); });
   $('m-new').onclick = newGame; $('m-size').onchange = newGame;
@@ -720,6 +783,7 @@ const Echo = (() => {
     window_ = null;
     if (!deck.length) { finish(); return; }
     pile.push(deck.pop()); show();
+    fx($('e-top').firstChild, 'flip-in');
     if (pile.length >= 2) {
       const a = pile[pile.length - 1], b = pile[pile.length - 2];
       const s = share(a, b);
@@ -737,12 +801,13 @@ const Echo = (() => {
       window_.taken = true; clearTimeout(botTimer);
       if (who === 'you') { you += window_.pts; say($('e-msg'), window_.pts === 3 ? 'Opposites! +3' : 'Three shared. +1', 'good'); }
       else { bot += window_.pts; say($('e-msg'), 'The bot got there first' + (window_.pts === 3 ? ' (+3).' : '.'), 'bad'); }
+      show(); fx([$('e-under').firstChild, $('e-top').firstChild], 'bounce');
     } else if (who === 'you') {
       const t = pile[pile.length - 1], u = pile[pile.length - 2];
       you -= 1;
       say($('e-msg'), (window_ && window_.taken) ? 'Too late. −1' : (u == null ? 'Nothing to slap yet. −1' : `Those share ${share(t, u)}. −1`), 'bad');
+      show(); fx([$('e-under').firstChild, $('e-top').firstChild], 'shake');
     }
-    show();
   }
   function finish() {
     running = false; over = true; $('e-start').textContent = 'Play again';
@@ -793,13 +858,14 @@ const Seek = (() => {
     mine = rnd(N); do { theirs = rnd(N); } while (theirs === mine);
     myCand = all(); botCand = all(); asked = new Set(); log = []; over = false;
     say($('s-msg'), 'Your turn. Tap any card to ask about it.', 'info'); render();
+    fx([$('s-mine').firstChild, $('s-theirs').firstChild], 'deal', 120);
   }
   function ask(q) {
     if (over) return;
     const a = share(q, theirs); asked.add(q);
     log.push({ who: 'you', q, a });
     myCand = myCand.filter((c) => share(q, c) === a);
-    if (a === 4) { over = true; say($('s-msg'), `Found it in ${log.filter((r) => r.who === 'you').length} questions. You win!`, 'good'); render(); return; }
+    if (a === 4) { over = true; say($('s-msg'), `Found it in ${log.filter((r) => r.who === 'you').length} questions. You win!`, 'good'); render(); fx($('s-theirs').firstChild, 'flip-in'); return; }
     render();
     setTimeout(() => {
       const bq = botQuery(); const ba = share(bq, mine);
@@ -808,6 +874,7 @@ const Seek = (() => {
       if (ba === 4) { over = true; say($('s-msg'), 'The bot named your card. It wins this one.', 'bad'); }
       else say($('s-msg'), `Bot asked about a card: it shares ${ba} with yours. Your turn.`, 'info');
       render();
+      if (over) fx($('s-theirs').firstChild, 'flip-in');
     }, 650);
   }
   $('s-grid').addEventListener('click', (ev) => { const b = ev.target.closest('.card'); if (b && !b.disabled) ask(+b.dataset.i); });
@@ -818,14 +885,16 @@ const Seek = (() => {
 /* ---------- Clans ---------- */
 const Clans = (() => {
   let deck, disc, hand, bhand, melds, phase, sel, turn, over, wins = 0, losses = 0, started = false;
+  let shownMelds = 0, shownTop = null; // what render last drew, so new melds and discards animate once
   const tripleOf = (ids) => { let x = FULL; ids.forEach((i) => { x &= M[i]; }); return pop(x) === 3 ? x : 0; };
   const fits = (i, m) => m.type === 'clan' && (M[i] & m.t) === m.t;
   function draw() { if (!deck.length) { const top = disc.pop(); deck = shuffle(disc); disc = [top]; } return deck.pop(); }
   function newGame() {
     deck = shuffle(all()); disc = []; melds = []; sel = []; over = false;
     hand = deck.splice(-7); bhand = deck.splice(-7); disc.push(deck.pop());
-    turn = 'you'; phase = 'draw';
+    turn = 'you'; phase = 'draw'; shownMelds = 0;
     say($('c-msg'), 'Your turn: draw from the deck or take the top discard.', 'info'); render();
+    fx([...$('c-hand').children], 'deal', 45);
   }
   function meldHTML(m, k) {
     const target = phase === 'play' && turn === 'you' && sel.length === 1 && fits(sel[0], m);
@@ -835,10 +904,18 @@ const Clans = (() => {
   function render() {
     hand.sort((a, b) => a - b);
     $('c-hand').innerHTML = hand.map((i) => cardBtn(i, sel.includes(i) ? 'sel' : '')).join('');
+    renderTable();
+  }
+  // Everything but the hand, so selecting in the hand can change the card in place and animate.
+  function renderTable() {
     $('c-melds').innerHTML = melds.length ? melds.map(meldHTML).join('') : '<span style="color:var(--muted)">No melds yet.</span>';
+    if (melds.length > shownMelds) fx([...$('c-melds').children].slice(shownMelds).flatMap((d) => [...d.querySelectorAll('.card')]), 'deal', 70);
+    shownMelds = melds.length;
     $('c-deck').innerHTML = BACK;
     const top = disc[disc.length - 1];
     $('c-discard').innerHTML = top != null ? cardBtn(top, phase === 'draw' && turn === 'you' && !over ? 'hint' : 'static', 'Take ' + cardName(top)) : '';
+    if (top != null && top !== shownTop) fx($('c-discard').firstChild, 'flip-in');
+    shownTop = top;
     $('c-bothand').textContent = bhand.length; $('c-left').textContent = deck.length;
     $('c-wins').textContent = wins; $('c-losses').textContent = losses;
     const play = phase === 'play' && turn === 'you' && !over;
@@ -863,12 +940,14 @@ const Clans = (() => {
     const c = src === 'deck' ? draw() : disc.pop();
     hand.push(c); sel = [c]; phase = 'play';
     say($('c-msg'), 'Lay down any melds, then discard one card.', 'info'); render();
+    fx(cardEls($('c-hand'), [c]), 'deal');
   }
   $('c-deck').onclick = () => takeFrom('deck');
   $('c-discard').addEventListener('click', (ev) => { if (ev.target.closest('.card')) takeFrom('disc'); });
   $('c-hand').addEventListener('click', (ev) => {
     const b = ev.target.closest('.card'); if (!b || over || turn !== 'you') return;
-    const i = +b.dataset.i; sel = sel.includes(i) ? sel.filter((x) => x !== i) : sel.concat(i); render();
+    const i = +b.dataset.i; sel = sel.includes(i) ? sel.filter((x) => x !== i) : sel.concat(i);
+    b.classList.toggle('sel', sel.includes(i)); renderTable();
   });
   $('c-meld').onclick = () => {
     if (!meldable(sel)) return;
@@ -950,7 +1029,7 @@ const Loop = (() => {
       else say($('l-msg'), `All 70 placed, but the last card shares ${share(end, chain[0])} with the first. Undo and try another route.`, 'bad');
     } else if (!mv.size) say($('l-msg'), 'Dead end: nothing left shares three with your last card. Undo a few steps.', 'bad');
   }
-  function play(i) { if (!left.has(i) || share(i, chain[chain.length - 1]) !== 3) return; chain.push(i); left.delete(i); say($('l-msg'), '', ''); render(); }
+  function play(i) { if (!left.has(i) || share(i, chain[chain.length - 1]) !== 3) return; chain.push(i); left.delete(i); say($('l-msg'), '', ''); render(); fx($('l-chain').lastChild, 'deal'); }
   const NB = all().map((i) => all().filter((j) => share(i, j) === 3));
   function solveNext() {
     const first = chain[0], rem = new Set(left), path = []; let nodes = 0; const budget = 150000;

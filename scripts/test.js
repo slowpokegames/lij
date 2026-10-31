@@ -10,11 +10,11 @@ const {chromium}=require('playwright');const fs=require('fs');
    for(let a=0;a<ids.length;a++)for(let c=a+1;c<ids.length;c++)for(let d=c+1;d<ids.length;d++)if((M[ids[a]]^M[ids[c]]^M[ids[d]])===0)return [ids.length,ids[a],ids[c],ids[d]];return [ids.length]});
  console.log('harmony board',r);
  for(const i of r.slice(1)) await p.click(`#h-board .card[data-i="${i}"]`);
- await p.waitForTimeout(800);console.log('harmony score',await p.textContent('#h-score'),await p.textContent('#h-msg'));
+ await p.waitForTimeout(1600);console.log('harmony score',await p.textContent('#h-score'),await p.textContent('#h-msg'));
  await p.screenshot({path:'g-harmony.png'});
  // Mirror
  await p.goto('file://'+process.cwd()+'/t.html#mirror');await p.waitForTimeout(300);
- const mc=await p.$$('#m-board .card');console.log('mirror cards',mc.length);await mc[0].click();await (await p.$$('#m-board .card'))[1].click();await p.waitForTimeout(200);
+ const mc=await p.$$('#m-board .card');console.log('mirror cards',mc.length);await mc[0].click();await (await p.$$('#m-board .card'))[1].click();await p.waitForTimeout(700);
  console.log('mirror',await p.textContent('#m-msg'));await p.screenshot({path:'g-mirror.png'});
  // Echo
  await p.goto('file://'+process.cwd()+'/t.html#echo');await p.waitForTimeout(300);
