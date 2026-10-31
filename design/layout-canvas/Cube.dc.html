@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Lij perspective cube layout</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@800&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#6B6253}a:hover{color:#3A2A08}
+</style>
+</helmet>
+<div style="width: 1200px; height: 430px; box-sizing: border-box; padding: 40px; display: flex; flex-direction: row; gap: 40px; background: #E6E1D5; font-family: 'Nunito', sans-serif">
+<sc-for list="{{cards}}" as="card" hint-placeholder-count="4">
+<div style="width: 250px; height: 350px; box-sizing: border-box; border-radius: 16px; background: #F7F4ED; border: {{card.border}}; position: relative; overflow: hidden">
+<svg viewBox="0 0 250 350" width="250" height="350" aria-hidden="true" style="position: absolute; left: {{card.offset}}px; top: {{card.offset}}px">
+<polygon points="{{card.poly}}" fill="#B8892B" fill-opacity="0.16" stroke="#B8892B" stroke-width="1.5" stroke-linejoin="round"></polygon>
+<g stroke="#C9C0AE" stroke-width="1.2" fill="none">
+<path d="M32 32H156V156H32Z"></path>
+<path d="M94 94H218V218H94Z"></path>
+<path d="M94 94L32 32M218 94L156 32M218 218L156 156M94 218L32 156"></path>
+</g>
+</svg>
+<sc-for list="{{card.slots}}" as="s" hint-placeholder-count="8">
+<div style="position: absolute; left: {{s.left}}px; top: {{s.top}}px; width: {{s.size}}px; height: {{s.size}}px; box-sizing: border-box; border-radius: 50%; background: {{s.bg}}; border: {{s.ring}}; display: flex; align-items: center; justify-content: center">
+<svg viewBox="0 0 24 24" width="{{s.icon}}" height="{{s.icon}}" role="img" aria-label="{{s.label}}"><path d="{{s.d}}" fill="none" stroke="{{s.ink}}" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+</div>
+</sc-for>
+<div style="position: absolute; left: 0; right: 0; bottom: 22px; text-align: center; font-size: 15px; font-weight: 800; letter-spacing: 0.12em; color: #8C8372">Lij</div>
+</div>
+</sc-for>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"ghosts":{"editor":"boolean","default":true},"omenBorder":{"editor":"boolean","default":true},"showPlane":{"editor":"boolean","default":true},"$preview":{"width":1200,"height":430}}'>
+class Component extends DCLogic {
+  emblems() {
+    return [
+      { n: 'Sun', c: '#E3A21A', ink: '#3A2A08', d: 'M8 12a4 4 0 1 0 8 0a4 4 0 1 0-8 0M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8', b: [0, 1, 1] },
+      { n: 'Moon', c: '#4F56A6', ink: '#F7F4ED', d: 'M15.5 3.5a8.5 8.5 0 1 0 5 13.6A7 7 0 0 1 15.5 3.5z', b: [0, 0, 1] },
+      { n: 'Water', c: '#1E73B0', ink: '#F7F4ED', d: 'M3 8.5c2-2 4-2 6 0s4 2 6 0 4-2 6 0M3 13c2-2 4-2 6 0s4 2 6 0 4-2 6 0M3 17.5c2-2 4-2 6 0s4 2 6 0 4-2 6 0', b: [0, 0, 0] },
+      { n: 'Fire', c: '#CF4520', ink: '#F7F4ED', d: 'M12 3c1 3.5 5.5 5.5 5.5 10.5a5.5 5.5 0 0 1-11 0c0-2.5 1.3-4 2.5-5.5.3 1.8 1 2.8 2 3.3 0-3 .4-5.6 1-8.3z', b: [0, 1, 0] },
+      { n: 'Mountains', c: '#56636B', ink: '#F7F4ED', d: 'M2 19.5L9 7l4.2 7.2L16 10l6 9.5zM7.3 10l1.7 1.3 1.5-1.2', b: [1, 0, 1] },
+      { n: 'Leaves', c: '#3A8A2E', ink: '#F7F4ED', d: 'M5 19C5 10.5 10.5 5 19.5 4.5 19.5 13.5 14 19 5 19zM5 19l8.5-8.5', b: [1, 1, 1] },
+      { n: 'Rocks', c: '#86654A', ink: '#F7F4ED', d: 'M3 18.5l1.8-5.2L9 11l4 2.6-.8 4.9zM13.6 18.5l1.5-4.3 3.6-.9 2.3 2.7-.6 2.5z', b: [1, 0, 0] },
+      { n: 'Sand', c: '#CDAA6C', ink: '#3A2A08', d: 'M2.5 16.5c3-3.5 6.5-3.5 9.5-1.2s6.5 2 9.5-1.3M2.5 20.5h19M7 9.5h.01M11 7h.01M15 9.5h.01M9.5 12h.01M18 6.5h.01', b: [1, 1, 0] }
+    ];
+  }
+  corner(b) {
+    const front = b[0] === 1;
+    const x = (b[1] ? 156 : 32) + (front ? 62 : 0);
+    const y = (b[2] ? 32 : 156) + (front ? 62 : 0);
+    return [x, y];
+  }
+  renderVals() {
+    const E = this.emblems();
+    const ghosts = this.props.ghosts ?? true;
+    const omenBorder = this.props.omenBorder ?? true;
+    const showPlane = this.props.showPlane ?? true;
+    const sets = [[0, 1, 2, 3], [4, 5, 6, 7], [0, 2, 5, 7], [1, 3, 4, 7]];
+    const isOmen = (s) => [0, 1, 2].every((k) => s.reduce((a, i) => a ^ E[i].b[k], 0) === 0);
+    const backFirst = [2, 6, 3, 7, 1, 4, 0, 5].sort((i, j) => E[i].b[0] - E[j].b[0]);
+    const cards = sets.map((set) => {
+      const omen = isOmen(set);
+      let poly = '';
+      if (omen && showPlane) {
+        const pts = set.map((i) => this.corner(E[i].b));
+        const cx = pts.reduce((s, p) => s + p[0], 0) / 4;
+        const cy = pts.reduce((s, p) => s + p[1], 0) / 4;
+        pts.sort((p, q) => Math.atan2(p[1] - cy, p[0] - cx) - Math.atan2(q[1] - cy, q[0] - cx));
+        poly = pts.map((p) => p.join(',')).join(' ');
+      }
+      const border = omenBorder && omen ? 3 : 1;
+      return {
+        border: border === 3 ? '3px solid #B8892B' : '1px solid #D6CEBD',
+        offset: -border,
+        poly,
+        slots: backFirst.map((i) => {
+          const on = set.includes(i);
+          const [x, y] = this.corner(E[i].b);
+          const size = on ? 42 : 28;
+          return {
+            label: E[i].n,
+            d: E[i].d,
+            left: x - size / 2 - border,
+            top: y - size / 2 - border,
+            size,
+            icon: on ? 26 : 15,
+            bg: on ? E[i].c : '#F7F4ED',
+            ring: on ? '2px solid #F7F4ED' : '1.5px dashed #CFC6B4',
+            ink: on ? E[i].ink : (ghosts ? '#CFC6B4' : 'transparent')
+          };
+        })
+      };
+    });
+    return { cards };
+  }
+}
+</script>
+</body>
+</html>

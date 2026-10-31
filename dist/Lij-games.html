@@ -1,0 +1,904 @@
+<title>Lij</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap">
+<style>
+/* Layout: a night card table. Sticky header with the six games as tabs; each game is one table surface with its controls above the cards. */
+:root{
+  --table:#1B1F44; --felt:#242958; --raise:#2F356E; --line:#454C8C;
+  --cream:#F7F4ED; --muted:#B4B8DA; --gold:#D9B565; --gold-ink:#2A1F06;
+  --good:#7BD39A; --bad:#F08A6E;
+  --display:"Nunito", "Trebuchet MS", system-ui, sans-serif;
+  --body:"Nunito", "Segoe UI", system-ui, sans-serif;
+  color-scheme:dark;
+}
+html,body{background:var(--table);color:var(--cream)}
+body{font-family:var(--body);font-size:16px;line-height:1.5}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--table)}
+.wrap{max-width:1180px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--table);border-bottom:1px solid var(--line)}
+header .wrap{display:flex;align-items:center;gap:20px;flex-wrap:wrap;padding-block:12px}
+.brand{display:flex;align-items:baseline;gap:10px}
+.brand b{font-family:var(--display);font-weight:900;font-size:30px;letter-spacing:.04em;color:var(--cream)}
+.brand span{color:var(--muted);font-size:13px}
+nav{display:flex;gap:6px;flex-wrap:wrap}
+nav a{color:var(--muted);text-decoration:none;font-weight:700;font-size:15px;padding:7px 12px;border-radius:999px;border:1px solid transparent}
+nav a:hover{color:var(--cream);border-color:var(--line)}
+nav a[aria-current="page"]{background:var(--gold);color:var(--gold-ink)}
+nav a:focus-visible,button:focus-visible,select:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+main .wrap{padding-block:24px 64px}
+section h1{font-family:var(--display);font-weight:900;font-size:34px;margin:0;text-wrap:balance}
+.lede{color:var(--muted);max-width:66ch;margin:6px 0 18px}
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:0 0 18px}
+.bar .stat{font-variant-numeric:tabular-nums;color:var(--muted);font-weight:700}
+.bar .stat b{color:var(--cream);font-weight:800}
+.spacer{flex:1}
+button.btn,select{font:inherit;font-weight:700;font-size:15px;color:var(--cream);background:var(--raise);border:1px solid var(--line);border-radius:10px;padding:8px 14px;cursor:pointer}
+button.btn:hover{border-color:var(--muted)}
+button.btn.primary{background:var(--gold);color:var(--gold-ink);border-color:var(--gold)}
+button.btn:disabled{opacity:.45;cursor:default}
+label.chk{display:flex;gap:8px;align-items:center;color:var(--muted);font-weight:600;font-size:15px;cursor:pointer}
+.msg{min-height:26px;font-weight:700;margin:0 0 14px}
+.msg.good{color:var(--good)} .msg.bad{color:var(--bad)} .msg.info{color:var(--gold)}
+.felt{background:var(--felt);border:1px solid var(--line);border-radius:18px;padding:18px}
+.grid{display:grid;gap:12px}
+.card{display:block;padding:0;border:0;background:none;cursor:pointer;aspect-ratio:250/350;width:100%;border-radius:7%/5%;overflow:hidden;box-shadow:0 2px 0 rgba(0,0,0,.35),0 6px 14px rgba(0,0,0,.25);transition:transform .15s,box-shadow .15s,opacity .2s}
+.card svg{display:block;width:100%;height:100%}
+.card:hover{transform:translateY(-3px)}
+.card.sel{box-shadow:0 0 0 4px var(--gold),0 10px 18px rgba(0,0,0,.4);transform:translateY(-6px)}
+.card.ok{box-shadow:0 0 0 4px var(--good)}
+.card.no{box-shadow:0 0 0 4px var(--bad)}
+.card.hint{box-shadow:0 0 0 4px var(--muted)}
+.card.dim{opacity:.28}
+.card.gone{visibility:hidden}
+.card[disabled]{cursor:default}
+.card[disabled]:hover{transform:none}
+.static{cursor:default}.static:hover{transform:none}
+@keyframes pop{from{transform:scale(.92);opacity:.4}to{transform:none;opacity:1}}
+@media (prefers-reduced-motion:no-preference){.card.new{animation:pop .25s ease-out}}
+@media (prefers-reduced-motion:reduce){.card,.card:hover{transition:none;transform:none}}
+.row{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start}
+.col{display:flex;flex-direction:column;gap:10px;min-width:0}
+.label{font-size:13px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.log{font-size:15px;color:var(--muted);display:flex;flex-direction:column;gap:6px;max-height:340px;overflow:auto}
+.log div{display:flex;gap:8px;align-items:center}
+.mini{width:44px;flex:none}
+.pill{display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:999px;background:var(--raise);border:1px solid var(--line);font-weight:800;font-size:13px;color:var(--cream)}
+.icons{display:inline-flex;gap:3px;vertical-align:middle}
+.icons svg{width:22px;height:22px}
+.meld{display:flex;flex-direction:column;gap:6px;padding:8px;border:1px solid var(--line);border-radius:12px;background:var(--table);cursor:default}
+.meld.target{border-color:var(--gold);cursor:pointer}
+.meld .cards{display:flex;gap:4px}
+.meld .cards .card{width:52px}
+.hand{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:12px}
+.cols5{grid-template-columns:repeat(5,minmax(0,1fr));max-width:820px;margin:0 auto}
+@media (max-width:560px){.cols5{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.chain{display:flex;flex-wrap:wrap;gap:4px}
+.chain .card{width:38px}
+.end-glow{box-shadow:0 0 0 3px var(--gold)}
+.big{width:min(180px,40vw)}
+.secret{width:min(150px,36vw)}
+.pile{width:min(150px,38vw)}
+.legend{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px;margin:0 0 18px}
+.legend div{display:flex;gap:10px;align-items:center;color:var(--muted);font-size:15px}
+.legend b{color:var(--cream)}
+kbd{font-family:inherit;font-weight:800;background:var(--raise);border:1px solid var(--line);border-bottom-width:2px;border-radius:6px;padding:0 6px}
+@media (max-width:560px){section h1{font-size:28px}.brand span{display:none}}
+</style>
+
+<header><div class="wrap">
+  <div class="brand"><b>Lij</b><span>70 cards · 8 emblems · 4 on each</span></div>
+  <nav aria-label="Games">
+    <a href="#harmony">Harmony</a><a href="#mirror">Mirror</a><a href="#echo">Echo</a><a href="#seek">Seek</a><a href="#clans">Clans</a><a href="#loop">Great Loop</a><a href="#deck">Deck</a>
+  </nav>
+</div></header>
+
+<main><div class="wrap">
+
+<section id="v-harmony">
+  <h1>Harmony</h1>
+  <p class="lede">Find three cards where every emblem that shows up appears exactly twice. Six emblems are shared in pairs and two are missing from all three.</p>
+  <div class="bar">
+    <span class="stat">Found <b id="h-score">0</b></span>
+    <span class="stat">Deck <b id="h-left">0</b></span>
+    <label class="chk"><input type="checkbox" id="h-eclipse"> Eclipses count too</label>
+    <span class="spacer"></span>
+    <button class="btn" id="h-hint">Hint</button>
+    <button class="btn" id="h-new">New game</button>
+  </div>
+  <p class="msg" id="h-msg" aria-live="polite"></p>
+  <div class="felt"><div class="grid" id="h-board" class="cols5"></div></div>
+</section>
+
+<section id="v-mirror" hidden>
+  <h1>Mirror</h1>
+  <p class="lede">A memory game. Turn over two cards; they match when they are opposites, so together they show all eight emblems once.</p>
+  <div class="bar">
+    <span class="stat">Turns <b id="m-moves">0</b></span>
+    <span class="stat">Pairs <b id="m-pairs">0</b></span>
+    <select id="m-size" aria-label="Number of pairs"><option value="6">6 pairs</option><option value="8" selected>8 pairs</option><option value="10">10 pairs</option></select>
+    <span class="spacer"></span>
+    <button class="btn" id="m-new">New game</button>
+  </div>
+  <p class="msg" id="m-msg" aria-live="polite"></p>
+  <div class="felt"><div class="grid" id="m-board" style="grid-template-columns:repeat(auto-fill,minmax(120px,1fr));max-width:760px;margin:0 auto"></div></div>
+</section>
+
+<section id="v-echo" hidden>
+  <h1>Echo</h1>
+  <p class="lede">Cards flip onto the pile. Slap when the top two share exactly three emblems for 1 point; slap an opposite pair for 3. A wrong slap costs you 1. Press <kbd>Space</kbd> or the Slap button.</p>
+  <div class="bar">
+    <span class="stat">You <b id="e-you">0</b></span>
+    <span class="stat">Bot <b id="e-bot">0</b></span>
+    <span class="stat">Deck <b id="e-left">70</b></span>
+    <select id="e-speed" aria-label="Speed"><option value="2000">Gentle</option><option value="1400" selected>Brisk</option><option value="950">Fast</option></select>
+    <span class="spacer"></span>
+    <button class="btn" id="e-start">Start</button>
+  </div>
+  <p class="msg" id="e-msg" aria-live="polite"></p>
+  <div class="felt">
+    <div class="row" style="justify-content:center;align-items:center">
+      <div class="col" style="align-items:center"><span class="label">Under</span><div class="pile" id="e-under"></div></div>
+      <div class="col" style="align-items:center"><span class="label">Top</span><div class="pile" id="e-top"></div></div>
+    </div>
+    <div style="display:flex;justify-content:center;margin-top:18px"><button class="btn primary" id="e-slap" style="font-size:20px;padding:12px 40px">Slap</button></div>
+  </div>
+</section>
+
+<section id="v-seek" hidden>
+  <h1>Seek</h1>
+  <p class="lede">You and the bot each hold a secret card. On your turn, pick any card and ask how many emblems it shares with the bot's secret. Name the exact card (an answer of 4) before the bot names yours.</p>
+  <div class="bar">
+    <select id="s-level" aria-label="Bot strength"><option value="sharp" selected>Sharp bot</option><option value="casual">Casual bot</option></select>
+    <label class="chk"><input type="checkbox" id="s-helper" checked> Fade cards that can't be it</label>
+    <span class="spacer"></span>
+    <button class="btn" id="s-new">New game</button>
+  </div>
+  <p class="msg" id="s-msg" aria-live="polite"></p>
+  <div class="row">
+    <div class="col felt" style="flex:1 1 300px">
+      <span class="label">Ask about a card</span>
+      <div class="grid" id="s-grid" style="grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:10px"></div>
+    </div>
+    <div class="col" style="flex:0 1 300px">
+      <div class="row">
+        <div class="col"><span class="label">Your secret</span><div class="secret" id="s-mine"></div></div>
+        <div class="col"><span class="label">Bot's secret</span><div class="secret" id="s-theirs"></div></div>
+      </div>
+      <span class="stat" id="s-counts" style="color:var(--muted);font-weight:700"></span>
+      <span class="label">Questions</span>
+      <div class="log" id="s-log"></div>
+    </div>
+  </div>
+</section>
+
+<section id="v-clans" hidden>
+  <h1>Clans</h1>
+  <p class="lede">Rummy with emblems. Draw from the deck or take the top discard, lay down melds, then discard one card. A clan is three or more cards that share the same three emblems. An opposite pair is a two-card meld. You may add a card to any clan on the table. Empty your hand to win.</p>
+  <div class="bar">
+    <span class="stat">Bot holds <b id="c-bothand">7</b></span>
+    <span class="stat">Deck <b id="c-left">0</b></span>
+    <span class="stat">Wins <b id="c-wins">0</b> – <b id="c-losses">0</b></span>
+    <span class="spacer"></span>
+    <button class="btn" id="c-new">New game</button>
+  </div>
+  <p class="msg" id="c-msg" aria-live="polite"></p>
+  <div class="felt">
+    <div class="row" style="align-items:flex-start">
+      <div class="col" style="align-items:center"><span class="label">Deck</span><button class="card pile" id="c-deck" aria-label="Draw from the deck" style="width:96px"></button></div>
+      <div class="col" style="align-items:center"><span class="label">Discard</span><div id="c-discard" style="width:96px"></div></div>
+      <div class="col" style="flex:1 1 300px"><span class="label">Table</span><div class="row" id="c-melds" style="gap:10px"></div></div>
+    </div>
+    <div class="bar" style="margin:18px 0 10px">
+      <span class="label">Your hand</span><span class="spacer"></span>
+      <button class="btn" id="c-meld">Lay down</button>
+      <button class="btn" id="c-addto">Add to clan</button>
+      <button class="btn primary" id="c-discard-btn">Discard</button>
+    </div>
+    <div class="hand" id="c-hand"></div>
+  </div>
+</section>
+
+<section id="v-loop" hidden>
+  <h1>Great Loop</h1>
+  <p class="lede">Lay all 70 cards in one chain where each card shares exactly three emblems with the one before it, then close the loop back to the first card. Only playable cards are bright.</p>
+  <div class="bar">
+    <span class="stat">Placed <b id="l-count">1</b> / 70</span>
+    <span class="spacer"></span>
+    <button class="btn" id="l-hint">Hint</button>
+    <button class="btn" id="l-undo">Undo</button>
+    <button class="btn" id="l-new">New start</button>
+  </div>
+  <p class="msg" id="l-msg" aria-live="polite"></p>
+  <div class="felt" style="margin-bottom:16px"><span class="label">Your chain</span><div class="chain" id="l-chain" style="margin-top:8px"></div></div>
+  <div class="felt"><div class="grid" id="l-pool" style="grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:10px"></div></div>
+</section>
+
+<section id="v-deck" hidden>
+  <h1>The deck</h1>
+  <p class="lede">Every way to choose 4 of the 8 emblems, once each. Each emblem has three traits, and the 14 cards with a gold frame are Omens: four emblems that make a flat plane of the cube, such as all warm things or all high things.</p>
+  <div class="legend" id="d-legend"></div>
+  <div class="bar">
+    <button class="btn" data-f="all">All 70</button>
+    <button class="btn" data-f="omen">Omens</button>
+    <span class="spacer"></span><span class="stat" id="d-count"></span>
+  </div>
+  <div class="grid" id="d-grid" style="grid-template-columns:repeat(auto-fill,minmax(110px,1fr))"></div>
+</section>
+
+</div></main>
+
+<script>
+// Lij card renderer: pure functions returning SVG strings. 250 x 350 units = 2.5" x 3.5".
+(function (root) {
+  const EMBLEMS = [
+    { n: 'Sun', c: '#E3A21A', ink: '#3A2A08', b: [0, 1, 1], d: 'M8 12a4 4 0 1 0 8 0a4 4 0 1 0-8 0M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8' },
+    { n: 'Moon', c: '#4F56A6', ink: '#F7F4ED', b: [0, 0, 1], d: 'M15.5 3.5a8.5 8.5 0 1 0 5 13.6A7 7 0 0 1 15.5 3.5z' },
+    { n: 'Water', c: '#1E73B0', ink: '#F7F4ED', b: [0, 0, 0], d: 'M3 8.5c2-2 4-2 6 0s4 2 6 0 4-2 6 0M3 13c2-2 4-2 6 0s4 2 6 0 4-2 6 0M3 17.5c2-2 4-2 6 0s4 2 6 0 4-2 6 0' },
+    { n: 'Fire', c: '#CF4520', ink: '#F7F4ED', b: [0, 1, 0], d: 'M12 3c1 3.5 5.5 5.5 5.5 10.5a5.5 5.5 0 0 1-11 0c0-2.5 1.3-4 2.5-5.5.3 1.8 1 2.8 2 3.3 0-3 .4-5.6 1-8.3z' },
+    { n: 'Mountains', c: '#56636B', ink: '#F7F4ED', b: [1, 0, 1], d: 'M2 19.5L9 7l4.2 7.2L16 10l6 9.5zM7.3 10l1.7 1.3 1.5-1.2' },
+    { n: 'Leaves', c: '#3A8A2E', ink: '#F7F4ED', b: [1, 1, 1], d: 'M5 19C5 10.5 10.5 5 19.5 4.5 19.5 13.5 14 19 5 19zM5 19l8.5-8.5' },
+    { n: 'Snow', c: '#8EC3E6', ink: '#0E3550', b: [1, 0, 0], d: 'M12 12L12.0 2.5M12.0 5.8L13.9 3.5M12.0 5.8L10.1 3.5M12 12L3.8 7.3M6.6 8.9L5.6 6.1M6.6 8.9L3.7 9.4M12 12L3.8 16.8M6.6 15.1L3.7 14.6M6.6 15.1L5.6 17.9M12 12L12.0 21.5M12.0 18.2L10.1 20.5M12.0 18.2L13.9 20.5M12 12L20.2 16.8M17.4 15.1L18.4 17.9M17.4 15.1L20.3 14.6M12 12L20.2 7.2M17.4 8.9L20.3 9.4M17.4 8.9L18.4 6.1' },
+    { n: 'Flower', c: '#F29AC9', ink: '#5A1636', b: [1, 1, 0], d: 'M8.6 6.8a3.4 3.4 0 1 0 6.8 0a3.4 3.4 0 1 0 -6.8 0M3.7 10.4a3.4 3.4 0 1 0 6.8 0a3.4 3.4 0 1 0 -6.8 0M5.5 16.2a3.4 3.4 0 1 0 6.8 0a3.4 3.4 0 1 0 -6.8 0M11.7 16.2a3.4 3.4 0 1 0 6.8 0a3.4 3.4 0 1 0 -6.8 0M13.5 10.4a3.4 3.4 0 1 0 6.8 0a3.4 3.4 0 1 0 -6.8 0M9.8 12a2.2 2.2 0 1 0 4.4 0a2.2 2.2 0 1 0 -4.4 0' }
+  ];
+  const STRIP = [0, 1, 5, 4, 3, 2, 7, 6]; // Sun, Moon, Leaves, Mountains, Fire, Water, Flower, Snow
+
+  // All 70 cards: sorted 4-subsets of 0..7, ordered by strip position for a natural deck order.
+  const CARDS = [];
+  (function () {
+    for (let a = 0; a < 8; a++) for (let b = a + 1; b < 8; b++) for (let c = b + 1; c < 8; c++) for (let d = c + 1; d < 8; d++) {
+      CARDS.push([STRIP[a], STRIP[b], STRIP[c], STRIP[d]]);
+    }
+  })();
+  const mask = (set) => set.reduce((m, i) => m | (1 << i), 0);
+  const isOmen = (set) => [0, 1, 2].every((k) => set.reduce((a, i) => a ^ EMBLEMS[i].b[k], 0) === 0);
+  const shared = (a, b) => { let x = mask(a) & mask(b), n = 0; while (x) { n += x & 1; x >>= 1; } return n; };
+
+  function icon(i, x, y, s, stroke, sw) {
+    const k = s / 24;
+    return `<path transform="translate(${x - s / 2} ${y - s / 2}) scale(${k})" d="${EMBLEMS[i].d}" fill="none" stroke="${stroke}" stroke-width="${sw / k}" stroke-linecap="round" stroke-linejoin="round"/>`;
+  }
+
+  function strip(set) {
+    let s = `<rect x="0" y="0" width="46" height="350" fill="#EEE8DA"/><line x1="46" y1="0" x2="46" y2="350" stroke="#DED5C3" stroke-width="1"/>`;
+    STRIP.forEach((i, k) => {
+      const y = 24 + k * 37.5;
+      if (set.includes(i)) {
+        s += `<circle cx="23" cy="${y}" r="15" fill="${EMBLEMS[i].c}"/>` + icon(i, 23, y, 19, EMBLEMS[i].ink, 1.9);
+      } else {
+        s += `<circle cx="23" cy="${y}" r="12.5" fill="none" stroke="#D3C9B5" stroke-width="1.2" stroke-dasharray="2.6 2.6"/>` + icon(i, 23, y, 14, '#D6CDBA', 1.3);
+      }
+    });
+    s += `<text x="23" y="334" text-anchor="middle" font-family="Nunito, Verdana, sans-serif" font-weight="800" font-size="12" fill="#9A8F7B" letter-spacing="1">Lij</text>`;
+    return s;
+  }
+
+  // Deterministic pseudo-random for stars etc.
+  function rng(seed) { let x = seed * 9301 + 49297; return () => { x = (x * 9301 + 49297) % 233280; return x / 233280; }; }
+
+  function scene(set, id, W0, Hh0, H0) {
+    const has = (n) => set.includes(EMBLEMS.findIndex((e) => e.n === n));
+    const sun = has('Sun'), moon = has('Moon'), water = has('Water'), fire = has('Fire');
+    const mtn = has('Mountains'), leaves = has('Leaves'), snow = has('Snow'), flower = has('Flower');
+    const W = W0 || 190, Hh = Hh0 || 326, H = H0 || 186; // scene width, height, horizon
+    const k190 = W / 190, X = (x) => +(x * k190).toFixed(1), dy = H - 186, SC = `scale(${k190.toFixed(4)} 1)`;
+    const mode = sun && moon ? 'dusk' : sun ? 'day' : moon ? 'night' : 'haze';
+    const SKY = { day: ['#7FC3EE', '#D4EEFA'], dusk: ['#3E3C7C', '#F2A469'], night: ['#0F1538', '#2C3870'], haze: ['#BFCBD2', '#E6EBEC'] }[mode];
+    const P = `g${id}`;
+    let defs = `<linearGradient id="${P}s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${SKY[0]}"/><stop offset="1" stop-color="${SKY[1]}"/></linearGradient>`;
+    defs += `<radialGradient id="${P}f"><stop offset="0" stop-color="#FFB347" stop-opacity="0.75"/><stop offset="1" stop-color="#FFB347" stop-opacity="0"/></radialGradient>`;
+    defs += `<radialGradient id="${P}h"><stop offset="0" stop-color="#FFE7A0" stop-opacity="0.8"/><stop offset="1" stop-color="#FFE7A0" stop-opacity="0"/></radialGradient>`;
+    defs += `<clipPath id="${P}c"><rect x="0" y="0" width="${W}" height="${Hh}" rx="10"/></clipPath>`;
+    let g = `<rect x="0" y="0" width="${W}" height="${Hh}" fill="url(#${P}s)"/>`;
+    const r = rng(mask(set) + 7);
+    if (mode === 'night' || mode === 'dusk') {
+      const n = mode === 'night' ? 26 : 10;
+      for (let k = 0; k < n; k++) {
+        const x = 6 + r() * (W - 12), y = 6 + r() * (mode === 'night' ? 150 : 80);
+        g += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${(0.6 + r() * 0.9).toFixed(2)}" fill="#FFF6D8" opacity="${(0.5 + r() * 0.5).toFixed(2)}"/>`;
+      }
+    }
+    if (mode === 'haze') {
+      g += `<g fill="#F7F8F8" opacity="0.85" transform="${SC}"><ellipse cx="48" cy="64" rx="34" ry="11"/><ellipse cx="66" cy="56" rx="22" ry="12"/><ellipse cx="146" cy="102" rx="30" ry="9"/><ellipse cx="160" cy="95" rx="18" ry="10"/></g>`;
+    }
+    if (sun) {
+      if (moon) { // low evening sun; above the peaks when mountains fill the horizon
+        const sy = mtn ? 108 + dy : H - 6, sxx = X(mtn ? 164 : leaves ? 84 : 132);
+        g += `<circle cx="${sxx}" cy="${sy}" r="44" fill="url(#${P}h)"/><circle cx="${sxx}" cy="${sy}" r="${mtn ? 20 : 27}" fill="#FFC75A"/>`;
+      } else {
+        const SX = X(140);
+        g += `<circle cx="${SX}" cy="58" r="46" fill="url(#${P}h)"/>`;
+        for (let k = 0; k < 12; k++) {
+          const a = (k * Math.PI) / 6, x1 = SX + Math.cos(a) * 30, y1 = 58 + Math.sin(a) * 30, x2 = SX + Math.cos(a) * 40, y2 = 58 + Math.sin(a) * 40;
+          g += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="#FFC23D" stroke-width="3.2" stroke-linecap="round"/>`;
+        }
+        g += `<circle cx="${SX}" cy="58" r="23" fill="#FFC23D"/><circle cx="${SX}" cy="58" r="23" fill="none" stroke="#F0A41C" stroke-width="2"/>`;
+      }
+    }
+    if (moon) {
+      const mx = X(sun ? 50 : 56), my = sun ? 50 : 60, mr = sun ? 15 : 21;
+      g += `<circle cx="${mx}" cy="${my}" r="${mr + 14}" fill="#FFF6D8" opacity="0.12"/>`;
+      g += `<path d="M${mx + mr * 0.25} ${my - mr} A${mr} ${mr} 0 1 0 ${mx + mr * 0.95} ${my + mr * 0.35} A${mr * 0.82} ${mr * 0.82} 0 0 1 ${mx + mr * 0.25} ${my - mr}Z" fill="#F6EFC9"/>`;
+    }
+    if (mtn) {
+      const back = mode === 'night' ? '#4C5878' : mode === 'dusk' ? '#7A6E92' : '#9EAAB5';
+      const front = mode === 'night' ? '#36405D' : mode === 'dusk' ? '#56506E' : '#6F7F8C';
+      g += `<g transform="translate(0 ${dy}) ${SC}"><path d="M-5 190 L30 112 L52 136 L84 92 L118 140 L140 120 L196 190Z" fill="${back}"/>`;
+      g += `<path d="M-5 194 L46 104 L76 146 L104 118 L150 194Z" fill="${front}"/>`;
+      g += `<path d="M84 92 L95 108 L88 105 L82 111 L76 104 L73 108Z" fill="#F4F6F7"/><path d="M46 104 L57 122 L50 118 L44 124 L38 117Z" fill="#F4F6F7"/><path d="M30 112 L37 123 L31 121 L25 124Z" fill="#F4F6F7" opacity="0.9"/>${snow ? '<path d="M84 92 L104 124 L96 120 L88 128 L80 120 L70 128 L62 118 L66 112Z M46 104 L64 134 L56 130 L48 138 L40 130 L32 136 L38 122Z" fill="#F4F6F7"/>' : ''}</g>`;
+    } else {
+      // gentle far hills so the horizon reads
+      const hill = mode === 'night' ? '#283358' : mode === 'dusk' ? '#6A5F7E' : mode === 'haze' ? '#AEB9B8' : '#A9C3B4';
+      g += `<path transform="${SC}" d="M-5 ${H + 2} Q40 ${H - 16} 95 ${H - 4} T196 ${H - 6} L196 ${H + 6} L-5 ${H + 6}Z" fill="${hill}"/>`;
+    }
+    // ground
+    const shore = water ? H + 52 : H;
+    const groundC = snow ? '#EEF3F6' : '#B7C48A';
+    const groundD = snow ? '#C9D8E3' : '#9AAA6C';
+    if (water) {
+      g += `<rect x="0" y="${H}" width="${W}" height="${shore - H + 12}" fill="${mode === 'night' ? '#1E3F72' : mode === 'dusk' ? '#5A6FA6' : snow ? '#5D9CC4' : '#3F8FC6'}"/>`;
+      for (let k = 0; k < 6; k++) {
+        const y = H + 8 + k * 7.5, x = X(14 + ((k * 53) % 120));
+        g += `<path d="M${x} ${y} q6 -3 12 0 t12 0" fill="none" stroke="#EAF6FF" stroke-width="1.4" stroke-linecap="round" opacity="0.7"/>`;
+      }
+      if (sun && !moon) g += `<path transform="translate(${(X(140) - 140).toFixed(1)} 0)" d="M128 ${H + 6} h24 M132 ${H + 14} h16 M136 ${H + 22} h8" stroke="#FFE08A" stroke-width="2" stroke-linecap="round" opacity="0.8"/>`;
+      if (moon && !sun) g += `<path transform="translate(${(X(56) - 56).toFixed(1)} 0)" d="M48 ${H + 8} h18 M51 ${H + 16} h12" stroke="#F6EFC9" stroke-width="1.6" stroke-linecap="round" opacity="0.7"/>`;
+      if (sun && moon) { const cxr = X(mtn ? 164 : leaves ? 84 : 132); g += `<path d="M${cxr - 20} ${H + 6} h40 M${cxr - 14} ${H + 14} h28 M${cxr - 8} ${H + 22} h16" stroke="#FFC75A" stroke-width="2" stroke-linecap="round" opacity="0.8"/>`; }
+    }
+    g += `<path transform="${SC}" d="M-5 ${shore + 6} Q50 ${shore - 6} 100 ${shore + 2} T196 ${shore} L196 ${Hh + 5} L-5 ${Hh + 5}Z" fill="${groundC}"/>`;
+    if (snow) {
+      g += `<path transform="${SC}" d="M-5 ${shore + 46} Q40 ${shore + 30} 90 ${shore + 42} T196 ${shore + 34}" fill="none" stroke="${groundD}" stroke-width="2.4"/>`;
+      g += `<path transform="${SC}" d="M10 ${Hh - 30} Q60 ${Hh - 48} 120 ${Hh - 34} T196 ${Hh - 42}" fill="none" stroke="${groundD}" stroke-width="2.4"/>`;
+    } else {
+      for (let k = 0; k < 10; k++) {
+        const x = X(10 + r() * 170), y = shore + 16 + r() * (Hh - shore - 26);
+        g += `<path d="M${x.toFixed(1)} ${y.toFixed(1)} l2 -6 l2 6 M${(x + 4).toFixed(1)} ${y.toFixed(1)} l2 -4" fill="none" stroke="${groundD}" stroke-width="1.2" stroke-linecap="round"/>`;
+      }
+    }
+    if (leaves) {
+      const tx = X(150), base = Hh - 44;
+      g += `<path d="M${tx - 6} ${base} L${tx - 4} ${base - 70} L${tx + 4} ${base - 70} L${tx + 7} ${base}Z" fill="#7A5236"/>`;
+      g += `<path d="M${tx} ${base - 52} L${tx - 18} ${base - 76} M${tx + 1} ${base - 60} L${tx + 20} ${base - 82}" stroke="#7A5236" stroke-width="4" stroke-linecap="round"/>`;
+      const blobs = [[0, -112, 34], [-26, -92, 26], [26, -94, 27], [-12, -132, 22], [16, -128, 23], [0, -84, 22]];
+      blobs.forEach(([dx, dy, rr], k) => { g += `<circle cx="${tx + dx}" cy="${base + dy}" r="${rr}" fill="${k % 2 ? '#3A8A2E' : '#4FA33A'}"/>`; });
+      if (snow) [[0, -146, 16], [-14, -152, 9], [16, -150, 10], [-30, -116, 10], [30, -118, 10]].forEach(([dx, dy, rr]) => { g += `<ellipse cx="${tx + dx}" cy="${base + dy + rr * 0.4}" rx="${rr}" ry="${rr * 0.45}" fill="#F4F8FB"/>`; });
+      [[-14, -118], [12, -106], [-4, -96], [22, -124], [-22, -98]].forEach(([dx, dy]) => {
+        g += `<path transform="translate(${tx + dx} ${base + dy}) rotate(${(dx * 7) % 60})" d="M0 0 C3 -6 9 -7 12 -6 C11 -2 6 3 0 0Z" fill="#8BCB5E"/>`;
+      });
+      for (let k = 0; k < 3; k++) {
+        const x = X(70 + k * 26 + r() * 10), y = Hh - 22 - r() * 30;
+        g += `<path transform="translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${(r() * 360).toFixed(0)})" d="M0 0 C3 -6 9 -7 12 -6 C11 -2 6 3 0 0Z" fill="#6FB14A" opacity="0.9"/>`;
+      }
+    }
+    if (flower) {
+      const spots = [[18, -22], [40, -46], [30, -8], [62, -24], [8, -54], [56, -58], [84, -10], [150, -14], [176, -30], [128, -38]];
+      const cols = snow ? ['#9B6FD0', '#E2B321', '#B88AE0'] : ['#F29AC9', '#F2C14E', '#FFFFFF', '#E879B4'];
+      spots.slice(0, snow ? 6 : 10).forEach(([px, py], k) => {
+        const x = X(px), y = Hh + py, c = cols[k % cols.length];
+        if (snow) {
+          g += `<path d="M${x} ${y} l0 -9" stroke="#5E8A3A" stroke-width="1.6" stroke-linecap="round"/><path d="M${x} ${y - 9} c-4 -2 -4 -9 0 -12 c4 3 4 10 0 12z" fill="${c}"/><path d="M${x} ${y - 9} c-6 -1 -7 -6 -5 -9 c2 1 4 5 5 9z M${x} ${y - 9} c6 -1 7 -6 5 -9 c-2 1 -4 5 -5 9z" fill="${c}" opacity="0.85"/>`;
+        } else {
+          g += `<path d="M${x} ${y} l0 -10" stroke="#4E7D2E" stroke-width="1.6" stroke-linecap="round"/>`;
+          for (let q = 0; q < 5; q++) { const t = (q * 2 * Math.PI) / 5; g += `<circle cx="${(x + 3.6 * Math.cos(t)).toFixed(1)}" cy="${(y - 12 + 3.6 * Math.sin(t)).toFixed(1)}" r="2.8" fill="${c}"/>`; }
+          g += `<circle cx="${x}" cy="${y - 12}" r="2" fill="${c === '#F2C14E' ? '#C0571F' : '#F2C14E'}"/>`;
+        }
+      });
+    }
+    if (snow) {
+      for (let k = 0; k < 22; k++) g += `<circle cx="${(4 + r() * (W - 8)).toFixed(1)}" cy="${(4 + r() * (Hh - 40)).toFixed(1)}" r="${(1 + r() * 1.3).toFixed(2)}" fill="#FFFFFF" opacity="0.85"/>`;
+    }
+    const shade = { night: 0.38, dusk: 0.14, day: 0, haze: 0.04 }[mode];
+    if (shade) g += `<rect x="0" y="0" width="${W}" height="${Hh}" fill="#0E1436" opacity="${shade}"/>`;
+    if (moon && !sun) g += `<path d="M${X(56) + 21 * 0.25} ${60 - 21} A21 21 0 1 0 ${X(56) + 21 * 0.95} ${60 + 21 * 0.35} A${21 * 0.82} ${21 * 0.82} 0 0 1 ${X(56) + 21 * 0.25} ${60 - 21}Z" fill="#F6EFC9"/>`;
+    if (fire) {
+      const fx = X(112), fy = Hh - 26;
+      g += `<circle cx="${fx}" cy="${fy - 18}" r="${mode === 'night' ? 62 : 42}" fill="url(#${P}f)"/>`;
+      g += `<path d="M${fx - 24} ${fy + 4} L${fx + 22} ${fy - 6}" stroke="#6B4429" stroke-width="7" stroke-linecap="round"/><path d="M${fx - 22} ${fy - 6} L${fx + 24} ${fy + 4}" stroke="#7D5232" stroke-width="7" stroke-linecap="round"/>`;
+      g += `<path d="M${fx} ${fy - 52} C${fx + 6} ${fy - 36} ${fx + 20} ${fy - 30} ${fx + 18} ${fy - 12} C${fx + 16} ${fy} ${fx - 16} ${fy} ${fx - 18} ${fy - 12} C${fx - 20} ${fy - 26} ${fx - 8} ${fy - 32} ${fx - 6} ${fy - 44} C${fx - 2} ${fy - 38} ${fx} ${fy - 44} ${fx} ${fy - 52}Z" fill="#E4572E"/>`;
+      g += `<path d="M${fx + 1} ${fy - 38} C${fx + 6} ${fy - 26} ${fx + 12} ${fy - 22} ${fx + 10} ${fy - 11} C${fx + 8} ${fy - 3} ${fx - 9} ${fy - 3} ${fx - 10} ${fy - 11} C${fx - 11} ${fy - 20} ${fx - 3} ${fy - 24} ${fx + 1} ${fy - 38}Z" fill="#F7A631"/>`;
+      g += `<path d="M${fx} ${fy - 24} C${fx + 4} ${fy - 17} ${fx + 6} ${fy - 13} ${fx + 4} ${fy - 8} C${fx + 2} ${fy - 4} ${fx - 4} ${fy - 4} ${fx - 5} ${fy - 8} C${fx - 6} ${fy - 13} ${fx - 2} ${fy - 16} ${fx} ${fy - 24}Z" fill="#FFE07A"/>`;
+      for (let k = 0; k < 4; k++) g += `<circle cx="${(fx - 14 + r() * 28).toFixed(1)}" cy="${(fy - 60 - r() * 30).toFixed(1)}" r="1.3" fill="#FFC14D" opacity="0.85"/>`;
+    }
+    return { defs, body: `<g clip-path="url(#${P}c)">${g}</g>` };
+  }
+
+  function topBand(set) {
+    let s = `<rect x="0" y="0" width="250" height="42" fill="#EEE8DA"/><line x1="0" y1="42" x2="250" y2="42" stroke="#DED5C3" stroke-width="1"/>`;
+    STRIP.forEach((i, k) => {
+      const x = 23.5 + k * 29, y = 21;
+      if (set.includes(i)) s += `<circle cx="${x}" cy="${y}" r="13" fill="${EMBLEMS[i].c}"/>` + icon(i, x, y, 17, EMBLEMS[i].ink, 1.9);
+      else s += `<circle cx="${x}" cy="${y}" r="10.5" fill="none" stroke="#D3C9B5" stroke-width="1.1" stroke-dasharray="2.3 2.3"/>` + icon(i, x, y, 12, '#D6CDBA', 1.2);
+    });
+    return s;
+  }
+
+  function cardSVG(set, opts) {
+    opts = opts || {};
+    const id = opts.id != null ? opts.id : mask(set);
+    const omen = isOmen(set);
+    const top = opts.layout === 'top';
+    const SW = top ? 234 : 190, SH = top ? 284 : 326, SHz = top ? 158 : 186;
+    const sc = scene(set, id, SW, SH, SHz);
+    const sx = top ? 8 : 52, sy = top ? 50 : 12;
+    let s = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 250 350" width="${opts.width || 250}" height="${opts.height || 350}">`;
+    s += `<defs>${sc.defs}</defs>`;
+    s += `<rect x="0" y="0" width="250" height="350" ${opts.rounded ? 'rx="12"' : ''} fill="#F7F4ED"/>`;
+    s += top ? topBand(set) : strip(set);
+    s += `<g transform="translate(${sx} ${sy})">${sc.body}<rect x="0" y="0" width="${SW}" height="${SH}" rx="10" fill="none" stroke="${omen ? '#B8892B' : '#D6CEBD'}" stroke-width="${omen ? 3 : 1}"/></g>`;
+    if (top) s += `<text x="125" y="345" text-anchor="middle" font-family="Nunito, Verdana, sans-serif" font-weight="800" font-size="9" fill="#9A8F7B" letter-spacing="1">Lij</text>`;
+    if (omen) {
+      s += `<rect x="2.5" y="2.5" width="245" height="345" rx="12" fill="none" stroke="#B8892B" stroke-width="5"/>`;
+      if (top) s += `<path transform="translate(108 342) scale(0.6)" d="M0 -6 L1.8 -1.8 L6 0 L1.8 1.8 L0 6 L-1.8 1.8 L-6 0 L-1.8 -1.8Z" fill="#B8892B"/>`;
+      else s += `<path transform="translate(23 314)" d="M0 -6 L1.8 -1.8 L6 0 L1.8 1.8 L0 6 L-1.8 1.8 L-6 0 L-1.8 -1.8Z" fill="#B8892B"/>`;
+    }
+    return s + `</svg>`;
+  }
+
+  function backSVG(opts) {
+    opts = opts || {};
+    let s = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 250 350" width="${opts.width || 250}" height="${opts.height || 350}">`;
+    s += `<rect x="0" y="0" width="250" height="350" ${opts.rounded ? 'rx="12"' : ''} fill="#2B2F5E"/>`;
+    s += `<rect x="12" y="12" width="226" height="326" rx="10" fill="none" stroke="#C9A85A" stroke-width="1.5"/>`;
+    s += `<path d="M12 300 L60 236 L84 262 L122 214 L160 262 L184 244 L238 300 L238 338 L12 338Z" fill="#232750"/>`;
+    s += `<path d="M12 318 L52 278 L86 300 L130 266 L176 304 L206 284 L238 312 L238 338 L12 338Z" fill="#1C2046"/>`;
+    const cx = 125, cy = 150, R = 72;
+    STRIP.forEach((i, k) => {
+      const a = -Math.PI / 2 + (k * Math.PI) / 4, x = cx + R * Math.cos(a), y = cy + R * Math.sin(a);
+      s += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="17" fill="${EMBLEMS[i].c}" stroke="#F7F4ED" stroke-width="1.5"/>` + icon(i, x, y, 20, EMBLEMS[i].ink, 1.9);
+    });
+    s += `<circle cx="${cx}" cy="${cy}" r="44" fill="none" stroke="#C9A85A" stroke-width="1" opacity="0.6"/>`;
+    s += `<text x="${cx}" y="${cy + 12}" text-anchor="middle" font-family="Nunito, Verdana, sans-serif" font-weight="800" font-size="36" fill="#F7F4ED" letter-spacing="2">Lij</text>`;
+    return s + `</svg>`;
+  }
+
+  const api = { EMBLEMS, STRIP, CARDS, mask, isOmen, shared, cardSVG, backSVG, icon };
+  if (typeof module !== 'undefined') module.exports = api; else root.Lij = api;
+})(this);
+
+</script>
+<script>
+(function(){
+const L = window.Lij, CARDS = L.CARDS, E = L.EMBLEMS, N = CARDS.length;
+const M = CARDS.map(L.mask);
+const FULL = 255;
+const pop = (x) => { let n = 0; while (x) { n += x & 1; x >>= 1; } return n; };
+const share = (a, b) => pop(M[a] & M[b]);
+const $ = (id) => document.getElementById(id);
+const rnd = (n) => Math.floor(Math.random() * n);
+const shuffle = (a) => { for (let i = a.length - 1; i > 0; i--) { const j = rnd(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const all = () => [...Array(N).keys()];
+const oppOf = M.map((m) => M.indexOf(FULL ^ m));
+let uid = 0;
+const face = (i) => L.cardSVG(CARDS[i], { id: 'u' + (uid++), rounded: true, width: '100%', height: '100%' });
+const BACK = L.backSVG({ rounded: true, width: '100%', height: '100%' });
+function cardBtn(i, cls, label) {
+  return `<button class="card ${cls || ''}" data-i="${i}" aria-label="${label || cardName(i)}">${face(i)}</button>`;
+}
+const cardName = (i) => CARDS[i].map((e) => E[e].n).join(', ');
+function iconSVG(e, size) {
+  return `<svg viewBox="0 0 30 30" width="${size || 22}" height="${size || 22}" aria-hidden="true"><circle cx="15" cy="15" r="14" fill="${E[e].c}"/>${L.icon(e, 15, 15, 18, E[e].ink, 1.9)}</svg>`;
+}
+function say(el, text, kind) { el.textContent = text; el.className = 'msg ' + (kind || ''); }
+
+/* ---------- routing ---------- */
+const VIEWS = ['harmony', 'mirror', 'echo', 'seek', 'clans', 'loop', 'deck'];
+let current = null;
+function route() {
+  let v = location.hash.slice(1);
+  if (!VIEWS.includes(v)) v = 'harmony';
+  if (current === 'echo' && v !== 'echo') Echo.pause();
+  current = v;
+  VIEWS.forEach((x) => { $('v-' + x).hidden = x !== v; });
+  document.querySelectorAll('nav a').forEach((a) => { if (a.getAttribute('href') === '#' + v) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
+  INIT[v] && INIT[v]();
+}
+
+/* ---------- Harmony ---------- */
+const Harmony = (() => {
+  let deck, board, sel, score, hintStep, started = false;
+  const ok = (a, b, c) => { const x = M[a] ^ M[b] ^ M[c]; return x === 0 || ($('h-eclipse').checked && x === FULL); };
+  function sets() {
+    const out = [];
+    for (let i = 0; i < board.length; i++) for (let j = i + 1; j < board.length; j++) for (let k = j + 1; k < board.length; k++)
+      if (ok(board[i], board[j], board[k])) out.push([board[i], board[j], board[k]]);
+    return out;
+  }
+  function settle() {
+    while (board.length < 15 && deck.length) board.push(deck.pop());
+    while (!sets().length && deck.length) { for (let k = 0; k < 3 && deck.length; k++) board.push(deck.pop()); }
+  }
+  function render(flash) {
+    $('h-board').innerHTML = board.map((i) => cardBtn(i, (sel.includes(i) ? 'sel ' : '') + (flash && flash.cls && flash.ids.includes(i) ? flash.cls : '') + (flash && flash.fresh && flash.fresh.includes(i) ? ' new' : ''))).join('');
+    $('h-score').textContent = score; $('h-left').textContent = deck.length;
+  }
+  function newGame() {
+    deck = shuffle(all()); board = []; sel = []; score = 0; hintStep = 0; settle();
+    say($('h-msg'), sets().length + ' Harmonies are hiding on this board.', 'info'); render();
+  }
+  function pick(i) {
+    if (sel.includes(i)) sel = sel.filter((x) => x !== i); else sel.push(i);
+    if (sel.length < 3) { render(); return; }
+    const [a, b, c] = sel;
+    if (ok(a, b, c)) {
+      const ecl = (M[a] ^ M[b] ^ M[c]) === FULL;
+      score++; hintStep = 0;
+      render({ cls: 'ok', ids: sel });
+      const done = sel; sel = [];
+      setTimeout(() => {
+        const before = new Set(board);
+        board = board.filter((x) => !done.includes(x));
+        if (board.length < 15 && deck.length) { /* refill in place */ }
+        settle();
+        const fresh = board.filter((x) => !before.has(x));
+        const left = sets().length;
+        if (!left) say($('h-msg'), `Deck cleared. You found ${score}.`, 'good');
+        else say($('h-msg'), (ecl ? 'Eclipse! ' : 'Harmony! ') + left + ' more on the board.', 'good');
+        render({ fresh });
+      }, 450);
+    } else {
+      const x = M[a] ^ M[b] ^ M[c];
+      const odd = E.filter((_, e) => x >> e & 1).map((e) => e.n);
+      render({ cls: 'no', ids: sel });
+      say($('h-msg'), 'Not quite: ' + odd.join(', ') + (odd.length === 1 ? ' appears' : ' appear') + ' an odd number of times.', 'bad');
+      sel = [];
+      setTimeout(() => render(), 650);
+    }
+  }
+  function hint() {
+    const s = sets(); if (!s.length) return;
+    hintStep = Math.min(hintStep + 1, 2);
+    const show = s[0].slice(0, hintStep);
+    sel = [];
+    render({ cls: 'hint', ids: show });
+    say($('h-msg'), hintStep === 1 ? 'This card is part of one.' : 'These two belong together. Which card completes them?', 'info');
+  }
+  $('h-board').addEventListener('click', (ev) => { const b = ev.target.closest('.card'); if (b) pick(+b.dataset.i); });
+  $('h-new').onclick = newGame; $('h-hint').onclick = hint;
+  $('h-eclipse').onchange = () => { settle(); say($('h-msg'), sets().length + ' matches on the board.', 'info'); render(); };
+  return { init() { if (!started) { started = true; newGame(); } } };
+})();
+
+/* ---------- Mirror ---------- */
+const Mirror = (() => {
+  let cards, up, done, moves, lock, started = false;
+  function newGame() {
+    const k = +$('m-size').value;
+    const reps = shuffle(all().filter((i) => i < oppOf[i])).slice(0, k);
+    cards = shuffle(reps.flatMap((i) => [i, oppOf[i]]));
+    up = []; done = new Set(); moves = 0; lock = false;
+    say($('m-msg'), 'Find each card’s opposite.', 'info'); render();
+  }
+  function render(flash) {
+    $('m-board').innerHTML = cards.map((i, p) => {
+      const shown = up.includes(p) || done.has(p);
+      const cls = (done.has(p) ? 'ok static ' : '') + (flash && flash.includes(p) ? 'no' : '');
+      return shown ? `<button class="card ${cls}" data-p="${p}" aria-label="${cardName(i)}" ${done.has(p) ? 'disabled' : ''}>${face(i)}</button>`
+        : `<button class="card" data-p="${p}" aria-label="Face-down card">${BACK}</button>`;
+    }).join('');
+    $('m-moves').textContent = moves; $('m-pairs').textContent = done.size / 2 + ' / ' + cards.length / 2;
+  }
+  function flip(p) {
+    if (lock || up.includes(p) || done.has(p)) return;
+    up.push(p); render();
+    if (up.length < 2) return;
+    moves++;
+    const [a, b] = up;
+    if ((M[cards[a]] ^ M[cards[b]]) === FULL) {
+      done.add(a); done.add(b); up = [];
+      if (done.size === cards.length) say($('m-msg'), `All ${cards.length / 2} pairs in ${moves} turns.`, 'good');
+      else say($('m-msg'), 'Opposites!', 'good');
+      render();
+    } else {
+      lock = true; render(up);
+      say($('m-msg'), `They share ${share(cards[a], cards[b])} emblem${share(cards[a], cards[b]) === 1 ? '' : 's'}. Opposites share none.`, 'bad');
+      setTimeout(() => { up = []; lock = false; render(); }, 1100);
+    }
+  }
+  $('m-board').addEventListener('click', (ev) => { const b = ev.target.closest('.card'); if (b && !b.disabled) flip(+b.dataset.p); });
+  $('m-new').onclick = newGame; $('m-size').onchange = newGame;
+  return { init() { if (!started) { started = true; newGame(); } } };
+})();
+
+/* ---------- Echo ---------- */
+const Echo = (() => {
+  let deck, pile, you, bot, running = false, timer = null, botTimer = null, window_ = null, over = true;
+  function show() {
+    const t = pile[pile.length - 1], u = pile[pile.length - 2];
+    $('e-top').innerHTML = t != null ? `<div class="card static" aria-label="${cardName(t)}">${face(t)}</div>` : `<div class="card static">${BACK}</div>`;
+    $('e-under').innerHTML = u != null ? `<div class="card static" aria-label="${cardName(u)}">${face(u)}</div>` : `<div class="card static" style="opacity:.25">${BACK}</div>`;
+    $('e-you').textContent = you; $('e-bot').textContent = bot; $('e-left').textContent = deck ? deck.length : 70;
+  }
+  function reset() {
+    clearTimeout(timer); clearTimeout(botTimer);
+    deck = shuffle(all()); pile = []; you = 0; bot = 0; window_ = null; over = false; running = false;
+    $('e-start').textContent = 'Start'; show();
+    say($('e-msg'), 'Press Start. The bot is quick, but it blinks sometimes.', 'info');
+  }
+  function flipNext() {
+    clearTimeout(botTimer);
+    if (window_ && !window_.taken) say($('e-msg'), window_.pts === 3 ? 'Missed an opposite pair!' : 'Missed one.', 'info');
+    window_ = null;
+    if (!deck.length) { finish(); return; }
+    pile.push(deck.pop()); show();
+    if (pile.length >= 2) {
+      const a = pile[pile.length - 1], b = pile[pile.length - 2];
+      const s = share(a, b);
+      if (s === 3 || s === 0) {
+        window_ = { pts: s === 0 ? 3 : 1, taken: false };
+        const speed = +$('e-speed').value;
+        if (Math.random() < 0.82) botTimer = setTimeout(() => slap('bot'), 380 + Math.random() * speed * 0.65);
+      }
+    }
+    timer = setTimeout(flipNext, +$('e-speed').value);
+  }
+  function slap(who) {
+    if (!running) return;
+    if (window_ && !window_.taken) {
+      window_.taken = true; clearTimeout(botTimer);
+      if (who === 'you') { you += window_.pts; say($('e-msg'), window_.pts === 3 ? 'Opposites! +3' : 'Three shared. +1', 'good'); }
+      else { bot += window_.pts; say($('e-msg'), 'The bot got there first' + (window_.pts === 3 ? ' (+3).' : '.'), 'bad'); }
+    } else if (who === 'you') {
+      const t = pile[pile.length - 1], u = pile[pile.length - 2];
+      you -= 1;
+      say($('e-msg'), (window_ && window_.taken) ? 'Too late. −1' : (u == null ? 'Nothing to slap yet. −1' : `Those share ${share(t, u)}. −1`), 'bad');
+    }
+    show();
+  }
+  function finish() {
+    running = false; over = true; $('e-start').textContent = 'Play again';
+    say($('e-msg'), you > bot ? `You win, ${you} to ${bot}.` : you < bot ? `The bot wins, ${bot} to ${you}.` : `A tie at ${you}.`, you >= bot ? 'good' : 'bad');
+  }
+  function toggle() {
+    running = !running;
+    $('e-start').textContent = running ? 'Pause' : 'Resume';
+    if (running) { say($('e-msg'), '', ''); timer = setTimeout(flipNext, 500); } else { clearTimeout(timer); clearTimeout(botTimer); }
+  }
+  $('e-start').onclick = () => { if (over) reset(); toggle(); };
+  $('e-slap').onclick = () => slap('you');
+  document.addEventListener('keydown', (ev) => {
+    if (current !== 'echo' || ev.code !== 'Space' || ev.target.closest('select,input')) return;
+    ev.preventDefault(); slap('you');
+  });
+  let started = false;
+  return { init() { if (!started) { started = true; reset(); } }, pause() { if (running) toggle(); } };
+})();
+
+/* ---------- Seek ---------- */
+const Seek = (() => {
+  let mine, theirs, myCand, botCand, asked, log, over, started = false;
+  function botQuery() {
+    if ($('s-level').value === 'casual' || botCand.length <= 2) return botCand[rnd(botCand.length)];
+    let best = null, bestScore = 1e9;
+    for (let q = 0; q < N; q++) {
+      const parts = [0, 0, 0, 0, 0];
+      botCand.forEach((c) => parts[share(q, c)]++);
+      const worst = Math.max(...parts.slice(0, 4), 0);
+      const sc = worst * 2 - (botCand.includes(q) ? 1 : 0);
+      if (sc < bestScore || (sc === bestScore && Math.random() < 0.3)) { bestScore = sc; best = q; }
+    }
+    return best;
+  }
+  function render() {
+    const helper = $('s-helper').checked;
+    $('s-grid').innerHTML = all().map((i) => {
+      const cls = (helper && !myCand.includes(i) ? 'dim ' : '') + (asked.has(i) ? 'hint' : '');
+      return cardBtn(i, cls, 'Ask about ' + cardName(i)).replace('<button', over ? '<button disabled' : '<button');
+    }).join('');
+    $('s-mine').innerHTML = `<div class="card static" aria-label="${cardName(mine)}">${face(mine)}</div>`;
+    $('s-theirs').innerHTML = over ? `<div class="card static" aria-label="${cardName(theirs)}">${face(theirs)}</div>` : `<div class="card static" aria-label="Hidden">${BACK}</div>`;
+    $('s-counts').textContent = `It could be one of ${myCand.length} for you · the bot is down to ${botCand.length}.`;
+    $('s-log').innerHTML = log.map((r) => `<div><span class="mini">${'<div class="card static">' + face(r.q) + '</div>'}</span><span>${r.who === 'you' ? 'You asked' : 'Bot asked'}: <b style="color:var(--cream)">${r.a === 4 ? 'that’s it' : r.a + ' shared'}</b></span></div>`).reverse().join('');
+  }
+  function newGame() {
+    mine = rnd(N); do { theirs = rnd(N); } while (theirs === mine);
+    myCand = all(); botCand = all(); asked = new Set(); log = []; over = false;
+    say($('s-msg'), 'Your turn. Tap any card to ask about it.', 'info'); render();
+  }
+  function ask(q) {
+    if (over) return;
+    const a = share(q, theirs); asked.add(q);
+    log.push({ who: 'you', q, a });
+    myCand = myCand.filter((c) => share(q, c) === a);
+    if (a === 4) { over = true; say($('s-msg'), `Found it in ${log.filter((r) => r.who === 'you').length} questions. You win!`, 'good'); render(); return; }
+    render();
+    setTimeout(() => {
+      const bq = botQuery(); const ba = share(bq, mine);
+      log.push({ who: 'bot', q: bq, a: ba });
+      botCand = botCand.filter((c) => share(bq, c) === ba);
+      if (ba === 4) { over = true; say($('s-msg'), 'The bot named your card. It wins this one.', 'bad'); }
+      else say($('s-msg'), `Bot asked about a card: it shares ${ba} with yours. Your turn.`, 'info');
+      render();
+    }, 650);
+  }
+  $('s-grid').addEventListener('click', (ev) => { const b = ev.target.closest('.card'); if (b && !b.disabled) ask(+b.dataset.i); });
+  $('s-new').onclick = newGame; $('s-helper').onchange = render; $('s-level').onchange = newGame;
+  return { init() { if (!started) { started = true; newGame(); } } };
+})();
+
+/* ---------- Clans ---------- */
+const Clans = (() => {
+  let deck, disc, hand, bhand, melds, phase, sel, turn, over, wins = 0, losses = 0, started = false;
+  const tripleOf = (ids) => { let x = FULL; ids.forEach((i) => { x &= M[i]; }); return pop(x) === 3 ? x : 0; };
+  const fits = (i, m) => m.type === 'clan' && (M[i] & m.t) === m.t;
+  function draw() { if (!deck.length) { const top = disc.pop(); deck = shuffle(disc); disc = [top]; } return deck.pop(); }
+  function newGame() {
+    deck = shuffle(all()); disc = []; melds = []; sel = []; over = false;
+    hand = deck.splice(-7); bhand = deck.splice(-7); disc.push(deck.pop());
+    turn = 'you'; phase = 'draw';
+    say($('c-msg'), 'Your turn: draw from the deck or take the top discard.', 'info'); render();
+  }
+  function meldHTML(m, k) {
+    const target = phase === 'play' && turn === 'you' && sel.length === 1 && fits(sel[0], m);
+    const lab = m.type === 'clan' ? `<span class="icons">${E.map((_, e) => (m.t >> e & 1) ? iconSVG(e, 20) : '').join('')}</span>` : '<span class="pill">Opposites</span>';
+    return `<div class="meld ${target ? 'target' : ''}" data-k="${k}" ${target ? 'role="button" tabindex="0" aria-label="Add to this clan"' : ''}>${lab}<div class="cards">${m.cards.map((i) => `<div class="card static" aria-label="${cardName(i)}">${face(i)}</div>`).join('')}</div><span class="label" style="font-size:11px">${m.owner === 'you' ? 'yours' : 'bot'}</span></div>`;
+  }
+  function render() {
+    hand.sort((a, b) => a - b);
+    $('c-hand').innerHTML = hand.map((i) => cardBtn(i, sel.includes(i) ? 'sel' : '')).join('');
+    $('c-melds').innerHTML = melds.length ? melds.map(meldHTML).join('') : '<span style="color:var(--muted)">No melds yet.</span>';
+    $('c-deck').innerHTML = BACK;
+    const top = disc[disc.length - 1];
+    $('c-discard').innerHTML = top != null ? cardBtn(top, phase === 'draw' && turn === 'you' && !over ? 'hint' : 'static', 'Take ' + cardName(top)) : '';
+    $('c-bothand').textContent = bhand.length; $('c-left').textContent = deck.length;
+    $('c-wins').textContent = wins; $('c-losses').textContent = losses;
+    const play = phase === 'play' && turn === 'you' && !over;
+    $('c-meld').disabled = !play || !meldable(sel);
+    $('c-addto').disabled = !play || !(sel.length === 1 && melds.some((m) => fits(sel[0], m)));
+    $('c-discard-btn').disabled = !play || sel.length !== 1;
+  }
+  const meldable = (ids) => (ids.length === 2 && (M[ids[0]] ^ M[ids[1]]) === FULL) || (ids.length >= 3 && tripleOf(ids));
+  function lay(owner, ids) {
+    const m = ids.length === 2 && (M[ids[0]] ^ M[ids[1]]) === FULL ? { type: 'pair', cards: ids.slice(), owner } : { type: 'clan', t: tripleOf(ids), cards: ids.slice(), owner };
+    melds.push(m);
+  }
+  function checkWin(who) {
+    const h = who === 'you' ? hand : bhand;
+    if (h.length) return false;
+    over = true;
+    if (who === 'you') { wins++; say($('c-msg'), 'You went out. You win!', 'good'); } else { losses++; say($('c-msg'), 'The bot went out first.', 'bad'); }
+    render(); return true;
+  }
+  function takeFrom(src) {
+    if (over || turn !== 'you' || phase !== 'draw') return;
+    const c = src === 'deck' ? draw() : disc.pop();
+    hand.push(c); sel = [c]; phase = 'play';
+    say($('c-msg'), 'Lay down any melds, then discard one card.', 'info'); render();
+  }
+  $('c-deck').onclick = () => takeFrom('deck');
+  $('c-discard').addEventListener('click', (ev) => { if (ev.target.closest('.card')) takeFrom('disc'); });
+  $('c-hand').addEventListener('click', (ev) => {
+    const b = ev.target.closest('.card'); if (!b || over || turn !== 'you') return;
+    const i = +b.dataset.i; sel = sel.includes(i) ? sel.filter((x) => x !== i) : sel.concat(i); render();
+  });
+  $('c-meld').onclick = () => {
+    if (!meldable(sel)) return;
+    lay('you', sel); hand = hand.filter((x) => !sel.includes(x)); sel = [];
+    if (!checkWin('you')) { say($('c-msg'), 'Laid down. Keep going, or discard to end your turn.', 'good'); render(); }
+  };
+  function addTo(k) {
+    const m = melds[k]; if (!(sel.length === 1 && fits(sel[0], m))) return;
+    m.cards.push(sel[0]); hand = hand.filter((x) => x !== sel[0]); sel = [];
+    if (!checkWin('you')) render();
+  }
+  $('c-melds').addEventListener('click', (ev) => { const d = ev.target.closest('.meld.target'); if (d) addTo(+d.dataset.k); });
+  $('c-melds').addEventListener('keydown', (ev) => { const d = ev.target.closest('.meld.target'); if (d && (ev.key === 'Enter' || ev.key === ' ')) { ev.preventDefault(); addTo(+d.dataset.k); } });
+  $('c-addto').onclick = () => { const k = melds.findIndex((m) => fits(sel[0], m)); if (k >= 0) addTo(k); };
+  $('c-discard-btn').onclick = () => {
+    if (sel.length !== 1) return;
+    disc.push(sel[0]); hand = hand.filter((x) => x !== sel[0]); sel = [];
+    if (checkWin('you')) return;
+    turn = 'bot'; phase = 'wait'; render(); setTimeout(botTurn, 700);
+  };
+  // ---- bot ----
+  function bestMelds(h) {
+    const out = []; let rest = h.slice();
+    for (const i of rest.slice()) { const o = oppOf[i]; if (rest.includes(i) && rest.includes(o)) { out.push([i, o]); rest = rest.filter((x) => x !== i && x !== o); } }
+    let found = true;
+    while (found) {
+      found = false;
+      const tally = new Map();
+      rest.forEach((i) => { for (let e = 0; e < 8; e++) if (M[i] >> e & 1) { const t = M[i] & ~(1 << e); tally.set(t, (tally.get(t) || []).concat(i)); } });
+      for (const [t, ids] of tally) if (ids.length >= 3) { out.push(ids); rest = rest.filter((x) => !ids.includes(x)); found = true; break; }
+    }
+    return { out, rest };
+  }
+  function useful(i, h) { // how much a card helps the bot's hand
+    let s = 0;
+    h.forEach((j) => { if (j !== i) { const k = share(i, j); if (k === 3) s += 2; if (k === 0) s += 3; } });
+    melds.forEach((m) => { if (fits(i, m)) s += 4; });
+    return s;
+  }
+  function botTurn() {
+    if (over) return;
+    const top = disc[disc.length - 1];
+    let took;
+    if (top != null && (useful(top, bhand) >= 4 || bestMelds(bhand.concat(top)).out.length > bestMelds(bhand).out.length)) { took = disc.pop(); bhand.push(took); say($('c-msg'), 'The bot took your discard.', 'info'); }
+    else { bhand.push(draw()); say($('c-msg'), 'The bot drew from the deck.', 'info'); }
+    render();
+    setTimeout(() => {
+      const { out } = bestMelds(bhand);
+      out.forEach((ids) => { lay('bot', ids); bhand = bhand.filter((x) => !ids.includes(x)); });
+      let laid = out.length;
+      for (const i of bhand.slice()) { const m = melds.find((mm) => fits(i, mm)); if (m) { m.cards.push(i); bhand = bhand.filter((x) => x !== i); laid++; } }
+      if (laid) say($('c-msg'), `The bot laid down ${laid === 1 ? 'a meld' : laid + ' melds'}.`, 'info');
+      if (checkWin('bot')) return;
+      bhand.sort((a, b) => useful(a, bhand) - useful(b, bhand) || Math.random() - 0.5);
+      const d = bhand.shift(); disc.push(d);
+      if (checkWin('bot')) return;
+      turn = 'you'; phase = 'draw';
+      say($('c-msg'), (laid ? `The bot laid down ${laid === 1 ? 'a meld' : laid + ' melds'} and discarded.` : 'The bot discarded.') + ' Your turn: draw or take the discard.', 'info');
+      render();
+    }, 800);
+  }
+  $('c-new').onclick = newGame;
+  return { init() { if (!started) { started = true; newGame(); } } };
+})();
+
+/* ---------- Great Loop ---------- */
+const Loop = (() => {
+  let chain, left, started = false;
+  const moves = () => { const end = chain[chain.length - 1]; return [...left].filter((i) => share(i, end) === 3); };
+  function newGame() { const s = rnd(N); chain = [s]; left = new Set(all()); left.delete(s); say($('l-msg'), 'Pick a bright card to extend the chain.', 'info'); render(); }
+  function render(hintId) {
+    const end = chain[chain.length - 1];
+    $('l-chain').innerHTML = chain.map((i, k) => `<div class="card static ${k === chain.length - 1 ? 'end-glow' : ''}" aria-label="${cardName(i)}">${face(i)}</div>`).join('');
+    const mv = new Set(moves());
+    $('l-pool').innerHTML = [...left].sort((a, b) => a - b).map((i) => mv.has(i) ? cardBtn(i, i === hintId ? 'hint' : '') : cardBtn(i, 'dim', cardName(i) + ' (not playable)').replace('<button', '<button disabled')).join('');
+    $('l-count').textContent = chain.length;
+    if (!left.size) {
+      if (share(end, chain[0]) === 3) say($('l-msg'), 'The Great Loop is closed. All 70 cards in one ring!', 'good');
+      else say($('l-msg'), `All 70 placed, but the last card shares ${share(end, chain[0])} with the first. Undo and try another route.`, 'bad');
+    } else if (!mv.size) say($('l-msg'), 'Dead end: nothing left shares three with your last card. Undo a few steps.', 'bad');
+  }
+  function play(i) { if (!left.has(i) || share(i, chain[chain.length - 1]) !== 3) return; chain.push(i); left.delete(i); say($('l-msg'), '', ''); render(); }
+  const NB = all().map((i) => all().filter((j) => share(i, j) === 3));
+  function solveNext() {
+    const first = chain[0], rem = new Set(left), path = []; let nodes = 0; const budget = 150000;
+    const deg = (a) => NB[a].reduce((s, j) => s + (rem.has(j) ? 1 : 0), 0);
+    function dfs(end) {
+      if (!rem.size) return NB[end].includes(first);
+      if (++nodes > budget) return false;
+      if (!NB[first].some((j) => rem.has(j))) return false;
+      const cand = NB[end].filter((j) => rem.has(j)).sort((a, b) => deg(a) - deg(b));
+      for (const c of cand) { rem.delete(c); path.push(c); if (dfs(c)) return true; path.pop(); rem.add(c); if (nodes > budget) return false; }
+      return false;
+    }
+    return dfs(chain[chain.length - 1]) ? path[0] : null;
+  }
+  function hint() {
+    const mv = moves(); if (!mv.length) return;
+    const next = solveNext();
+    if (next != null) { say($('l-msg'), 'This card keeps a route open all the way around.', 'info'); render(next); }
+    else { say($('l-msg'), 'There\u2019s no way to close the loop from here. Undo a few cards and ask again.', 'bad'); render(); }
+  }
+  $('l-pool').addEventListener('click', (ev) => { const b = ev.target.closest('.card'); if (b && !b.disabled) play(+b.dataset.i); });
+  $('l-undo').onclick = () => { if (chain.length > 1) { left.add(chain.pop()); say($('l-msg'), '', ''); render(); } };
+  $('l-new').onclick = newGame; $('l-hint').onclick = hint;
+  return { init() { if (!started) { started = true; newGame(); } } };
+})();
+
+/* ---------- Deck ---------- */
+const Deck = (() => {
+  let started = false, filter = 'all';
+  const TR = [['Still', 'Moving'], ['Warm', 'Cool'], ['High', 'Low']];
+  function render() {
+    const ids = all().filter((i) => filter === 'all' || L.isOmen(CARDS[i]));
+    $('d-grid').innerHTML = ids.map((i) => `<div class="card static" aria-label="${cardName(i)}">${face(i)}</div>`).join('');
+    $('d-count').textContent = ids.length + ' cards';
+    document.querySelectorAll('#v-deck [data-f]').forEach((b) => b.classList.toggle('primary', b.dataset.f === filter));
+  }
+  function init() {
+    if (started) return; started = true;
+    $('d-legend').innerHTML = L.STRIP.map((e) => `<div>${iconSVG(e, 30)}<span><b>${E[e].n}</b> · ${E[e].b.map((v, k) => TR[k][v ? 0 : 1]).join(', ').toLowerCase()}</span></div>`).join('');
+    document.querySelectorAll('#v-deck [data-f]').forEach((b) => { b.onclick = () => { filter = b.dataset.f; render(); }; });
+    render();
+  }
+  return { init };
+})();
+
+const INIT = { harmony: Harmony.init, mirror: Mirror.init, echo: Echo.init, seek: Seek.init, clans: Clans.init, loop: Loop.init, deck: Deck.init };
+window.addEventListener('hashchange', route);
+route();
+})();
+</script>
