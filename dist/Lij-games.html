@@ -84,7 +84,10 @@ label.chk{display:flex;gap:8px;align-items:center;color:var(--muted);font-weight
 .legend div{display:flex;gap:10px;align-items:center;color:var(--muted);font-size:15px}
 .legend b{color:var(--cream)}
 kbd{font-family:inherit;font-weight:800;background:var(--raise);border:1px solid var(--line);border-bottom-width:2px;border-radius:6px;padding:0 6px}
-@media (max-width:560px){section h1{font-size:28px}.brand span{display:none}}
+.seg{display:flex;margin-left:auto;border:1px solid var(--line);border-radius:999px;padding:2px}
+.seg button{font:inherit;font-weight:700;font-size:14px;color:var(--muted);background:none;border:0;border-radius:999px;padding:5px 12px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--raise);color:var(--cream)}
+@media (max-width:560px){section h1{font-size:28px}.brand span{display:none}.seg{order:1}nav{order:2}}
 </style>
 
 <header><div class="wrap">
@@ -92,6 +95,7 @@ kbd{font-family:inherit;font-weight:800;background:var(--raise);border:1px solid
   <nav aria-label="Games">
     <a href="#harmony">Harmony</a><a href="#mirror">Mirror</a><a href="#echo">Echo</a><a href="#seek">Seek</a><a href="#clans">Clans</a><a href="#loop">Great Loop</a><a href="#deck">Deck</a>
   </nav>
+  <div class="seg" role="group" aria-label="Card faces"><button data-face="scene">Scenes</button><button data-face="emblems">Badges</button></div>
 </div></header>
 
 <main><div class="wrap">
@@ -498,7 +502,19 @@ const shuffle = (a) => { for (let i = a.length - 1; i > 0; i--) { const j = rnd(
 const all = () => [...Array(N).keys()];
 const oppOf = M.map((m) => M.indexOf(FULL ^ m));
 let uid = 0;
-const face = (i) => L.cardSVG(CARDS[i], { id: 'u' + (uid++), rounded: true, width: '100%', height: '100%' });
+// Card face style ('scene' or 'emblems'), chosen in the header and remembered per browser.
+let FACE = 'scene';
+try { if (localStorage.getItem('lij-face') === 'emblems') FACE = 'emblems'; } catch (e) {}
+// data-c tags each face with its card so a style switch can redraw every card in place.
+const face = (i) => L.cardSVG(CARDS[i], { id: 'u' + (uid++), rounded: true, width: '100%', height: '100%', face: FACE }).replace('<svg ', `<svg data-c="${i}" `);
+function setFace(f) {
+  FACE = f;
+  try { localStorage.setItem('lij-face', f); } catch (e) {}
+  document.querySelectorAll('.seg [data-face]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.face === f));
+  document.querySelectorAll('svg[data-c]').forEach((s) => { s.outerHTML = face(+s.dataset.c); });
+}
+document.querySelectorAll('.seg [data-face]').forEach((b) => { b.onclick = () => setFace(b.dataset.face); });
+setFace(FACE);
 const BACK = L.backSVG({ rounded: true, width: '100%', height: '100%' });
 function cardBtn(i, cls, label) {
   return `<button class="card ${cls || ''}" data-i="${i}" aria-label="${label || cardName(i)}">${face(i)}</button>`;
