@@ -107,6 +107,22 @@ kbd{font-family:inherit;font-weight:800;background:var(--raise);border:1px solid
 .seg button{font:inherit;font-weight:700;font-size:14px;color:var(--muted);background:none;border:0;border-radius:999px;padding:5px 12px;cursor:pointer}
 .seg button[aria-pressed="true"]{background:var(--raise);color:var(--cream)}
 .howto{display:none}
+/* Opponent picker (a chip per computer player) and the scoreboard of players in a game. */
+.opp{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 12px}
+.opp .label{margin-right:4px}
+.who{display:inline-flex;align-items:center;gap:6px;font:inherit;font-weight:700;font-size:14px;color:var(--muted);background:none;border:1px solid var(--line);border-radius:999px;padding:3px 12px 3px 3px;cursor:pointer}
+.who svg{display:block}
+.who:hover{color:var(--cream)}
+.who[aria-pressed="true"]{background:var(--raise);color:var(--cream);border-color:var(--who);box-shadow:inset 0 0 0 1px var(--who)}
+.who[aria-pressed="false"] svg{opacity:.5;filter:grayscale(.7)}
+.opp .note{color:var(--muted);font-size:14px;margin-left:4px}
+.scores{display:flex;flex-wrap:wrap;gap:6px}
+.score{display:inline-flex;align-items:center;gap:6px;padding:2px 10px 2px 2px;border-radius:999px;border:1px solid transparent;font-weight:700;color:var(--muted);font-variant-numeric:tabular-nums}
+.score svg{display:block}
+.score.me{padding-left:10px}
+.score b{color:var(--cream);font-weight:800}
+.score.turn{border-color:var(--gold);background:var(--raise);color:var(--cream)}
+.card.sel.bot{box-shadow:0 0 0 4px var(--who),0 10px 18px rgba(0,0,0,.4)}
 /* Phones: header scrolls away, game tabs sit in one sideways-scrolling row, and each game's
    rules fold behind a "How to play" button so the board starts near the top. */
 @media (max-width:560px){
@@ -120,6 +136,10 @@ kbd{font-family:inherit;font-weight:800;background:var(--raise);border:1px solid
   nav::-webkit-scrollbar{display:none}
   nav a{flex:none;padding:6px 11px}
   .lede{display:none}
+  .opp{gap:4px;margin-bottom:8px}
+  .opp .note{display:none}
+  .who{font-size:13px;padding:2px 9px 2px 2px;gap:4px}
+  .who svg{width:20px;height:20px}
   .rules-open .lede{display:block}
   .howto{display:inline-block;margin-left:10px;vertical-align:5px;font:inherit;font-weight:700;font-size:14px;color:var(--gold);background:none;border:1px solid var(--line);border-radius:999px;padding:3px 11px;cursor:pointer}
 }
@@ -137,9 +157,10 @@ kbd{font-family:inherit;font-weight:800;background:var(--raise);border:1px solid
 
 <section id="v-harmony">
   <h1>Harmony</h1>
-  <p class="lede">Find three cards where every emblem that shows up appears exactly twice. Six emblems are shared in pairs and two are missing from all three.</p>
+  <p class="lede">Find three cards where every emblem that shows up appears exactly twice. Six emblems are shared in pairs and two are missing from all three. Play alone, or race opponents to each one.</p>
+  <div class="opp" data-game="harmony"></div>
   <div class="bar">
-    <span class="stat">Found <b id="h-score">0</b></span>
+    <span class="scores" id="h-scores"></span>
     <span class="stat">Deck <b id="h-left">0</b></span>
     <label class="chk"><input type="checkbox" id="h-eclipse"> Eclipses count too</label>
     <span class="spacer"></span>
@@ -152,9 +173,11 @@ kbd{font-family:inherit;font-weight:800;background:var(--raise);border:1px solid
 
 <section id="v-mirror" hidden>
   <h1>Mirror</h1>
-  <p class="lede">A memory game. Turn over two cards; they match when they are opposites, so together they show all eight emblems once.</p>
+  <p class="lede">A memory game. Turn over two cards; they match when they are opposites, so together they show all eight emblems once. With opponents, take turns; finding a pair earns another turn.</p>
+  <div class="opp" data-game="mirror"></div>
   <div class="bar">
-    <span class="stat">Turns <b id="m-moves">0</b></span>
+    <span class="stat" id="m-turns">Turns <b id="m-moves">0</b></span>
+    <span class="scores" id="m-scores"></span>
     <span class="stat">Pairs <b id="m-pairs">0</b></span>
     <select id="m-size" aria-label="Number of pairs"><option value="6">6 pairs</option><option value="8" selected>8 pairs</option><option value="10">10 pairs</option></select>
     <span class="spacer"></span>
@@ -167,9 +190,9 @@ kbd{font-family:inherit;font-weight:800;background:var(--raise);border:1px solid
 <section id="v-echo" hidden>
   <h1>Echo</h1>
   <p class="lede">Cards flip onto the pile. Slap when the top two share exactly three emblems for 1 point; slap an opposite pair for 3. A wrong slap costs you 1. Press <kbd>Space</kbd> or the Slap button.</p>
+  <div class="opp" data-game="echo"></div>
   <div class="bar">
-    <span class="stat">You <b id="e-you">0</b></span>
-    <span class="stat">Bot <b id="e-bot">0</b></span>
+    <span class="scores" id="e-scores"></span>
     <span class="stat">Deck <b id="e-left">70</b></span>
     <select id="e-speed" aria-label="Speed"><option value="2000">Gentle</option><option value="1400" selected>Brisk</option><option value="950">Fast</option></select>
     <span class="spacer"></span>
@@ -187,9 +210,9 @@ kbd{font-family:inherit;font-weight:800;background:var(--raise);border:1px solid
 
 <section id="v-seek" hidden>
   <h1>Seek</h1>
-  <p class="lede">You and the bot each hold a secret card. On your turn, pick any card and ask how many emblems it shares with the bot's secret. Name the exact card (an answer of 4) before the bot names yours.</p>
+  <p class="lede">You and your opponent each hold a secret card. On your turn, pick any card and ask how many emblems it shares with their secret. Name the exact card (an answer of 4) before they name yours.</p>
+  <div class="opp" data-game="seek"></div>
   <div class="bar">
-    <select id="s-level" aria-label="Bot strength"><option value="sharp" selected>Sharp bot</option><option value="casual">Casual bot</option></select>
     <label class="chk"><input type="checkbox" id="s-helper" checked> Fade cards that can't be it</label>
     <span class="spacer"></span>
     <button class="btn" id="s-new">New game</button>
@@ -203,7 +226,7 @@ kbd{font-family:inherit;font-weight:800;background:var(--raise);border:1px solid
     <div class="col" style="flex:0 1 300px;position:sticky;top:92px">
       <div class="row">
         <div class="col"><span class="label">Your secret</span><div class="secret" id="s-mine"></div></div>
-        <div class="col"><span class="label">Bot's secret</span><div class="secret" id="s-theirs"></div></div>
+        <div class="col"><span class="label" id="s-their-label">Their secret</span><div class="secret" id="s-theirs"></div></div>
       </div>
       <span class="stat" id="s-counts" style="color:var(--muted);font-weight:700"></span>
       <span class="label">Questions</span>
@@ -215,8 +238,9 @@ kbd{font-family:inherit;font-weight:800;background:var(--raise);border:1px solid
 <section id="v-clans" hidden>
   <h1>Clans</h1>
   <p class="lede">Rummy with emblems. Draw from the deck or take the top discard, lay down melds, then discard one card. A clan is three or more cards that share the same three emblems. An opposite pair is a two-card meld. You may add a card to any clan on the table. Empty your hand to win.</p>
+  <div class="opp" data-game="clans"></div>
   <div class="bar">
-    <span class="stat">Bot holds <b id="c-bothand">7</b></span>
+    <span class="stat">Holding</span><span class="scores" id="c-scores"></span>
     <span class="stat">Deck <b id="c-left">0</b></span>
     <span class="stat">Wins <b id="c-wins">0</b> – <b id="c-losses">0</b></span>
     <span class="spacer"></span>
@@ -331,6 +355,61 @@ function turnOver(el, html, done) {
 const cardEls = (box, ids) => ids.map((i) => box.querySelector(`.card[data-i="${i}"]`));
 function say(el, text, kind) { el.textContent = text; el.className = 'msg ' + (kind || ''); }
 
+/* ---------- opponents ---------- */
+// The computer players, each named for an emblem. Every game reads the same traits (0 to 1):
+// speed: how quickly they act; focus: how often they notice a chance; rash: how often they grab
+// at a wrong one; memory: how much of what they've seen they keep; logic: how well they plan;
+// greed: how eagerly they take the discard in Clans.
+const CAST = [
+  { id: 'pip', n: 'Pip', e: 7, blurb: 'Just learning. Slow and a bit forgetful, but never reckless.', speed: .2, focus: .55, rash: .03, memory: .35, logic: .1, greed: .3 },
+  { id: 'wren', n: 'Wren', e: 5, blurb: 'Steady and careful. Rarely wrong, rarely in a hurry.', speed: .5, focus: .85, rash: .02, memory: .65, logic: .6, greed: .45 },
+  { id: 'ember', n: 'Ember', e: 3, blurb: 'Fast and bold. Grabs at everything, and sometimes grabs wrong.', speed: .85, focus: .8, rash: .3, memory: .45, logic: .35, greed: .9 },
+  { id: 'sage', n: 'Sage', e: 1, blurb: 'Slow hands, sharp mind. Remembers everything and plans ahead.', speed: .3, focus: .97, rash: 0, memory: .95, logic: 1, greed: .4 },
+  { id: 'frost', n: 'Frost', e: 6, blurb: 'Quick and exact. The toughest player at the table.', speed: .95, focus: .95, rash: .02, memory: .9, logic: .95, greed: .6 },
+];
+const YOU = { id: 'you', n: 'You' };
+const names = (ps) => ps.map((p) => p.n).reduce((s, n, k, a) => s + (k ? (k === a.length - 1 ? ' and ' : ', ') : '') + n, '');
+// A row of opponent chips under a game's title (a .opp element with data-game). Up to `max` may
+// be picked; with min 0, picking none is solo play. The pick is remembered per game, and changing
+// it calls onChange (each game starts over).
+function Opponents(game, { min = 0, max = 3, def = [], onChange }) {
+  const el = document.querySelector(`.opp[data-game="${game}"]`), key = 'lij-opp-' + game;
+  let picked = def.slice();
+  try { const s = JSON.parse(localStorage.getItem(key)); if (Array.isArray(s) && s.length >= min && s.length <= max && s.every((x) => CAST.some((p) => p.id === x))) picked = s; } catch (e) {}
+  el.innerHTML = `<span class="label">${max === 1 ? 'Opponent' : 'Opponents'}</span>` +
+    CAST.map((p) => `<button class="who" data-p="${p.id}" style="--who:${E[p.e].c}" title="${p.blurb}">${iconSVG(p.e, 24)}<span>${p.n}</span></button>`).join('') +
+    '<span class="note"></span>';
+  const note = el.querySelector('.note');
+  const sync = () => {
+    el.querySelectorAll('.who').forEach((b) => b.setAttribute('aria-pressed', picked.includes(b.dataset.p)));
+    note.textContent = picked.length ? '' : 'None picked: you play alone.';
+  };
+  el.addEventListener('click', (ev) => {
+    const b = ev.target.closest('.who'); if (!b) return;
+    const id = b.dataset.p;
+    if (max === 1) { if (picked[0] === id) return; picked = [id]; }
+    else if (picked.includes(id)) { if (picked.length <= min) return; picked = picked.filter((x) => x !== id); }
+    else { picked = picked.concat(id); if (picked.length > max) picked.shift(); }
+    try { localStorage.setItem(key, JSON.stringify(picked)); } catch (e) {}
+    sync();
+    const p = CAST.find((x) => x.id === id);
+    if (picked.includes(id)) note.textContent = `${p.n}: ${p.blurb}`;
+    onChange();
+  });
+  sync();
+  return { list: () => CAST.filter((p) => picked.includes(p.id)) };
+}
+// Scores (or card counts) for you and your opponents; `turn` marks whose turn it is.
+function scoreboard(el, players, scores, turn) {
+  el.innerHTML = players.map((p, k) => `<span class="score ${p === YOU ? 'me' : ''} ${k === turn ? 'turn' : ''}">${p === YOU ? '' : iconSVG(p.e, 22)}<span>${p.n}</span><b>${scores[k]}</b></span>`).join('');
+}
+function standings(players, scores) {
+  const top = Math.max(...scores), lead = players.filter((_, k) => scores[k] === top);
+  const line = scores.slice().sort((a, b) => b - a).join(' to ');
+  if (lead.length > 1) return `${names(lead)} tie at ${top}.`;
+  return (lead[0] === YOU ? 'You win, ' : lead[0].n + ' wins, ') + line + '.';
+}
+
 /* ---------- fitting boards to the window ---------- */
 // A [data-fit] grid picks the column count that gives the largest cards while the whole
 // page, including everything below the board, fits in the window (ties go to fuller rows).
@@ -376,7 +455,7 @@ let current = null;
 function route() {
   let v = location.hash.slice(1);
   if (!VIEWS.includes(v)) v = 'harmony';
-  if (current === 'echo' && v !== 'echo') Echo.pause();
+  if (current && current !== v && PAUSE[current]) PAUSE[current]();
   current = v;
   VIEWS.forEach((x) => { $('v-' + x).hidden = x !== v; });
   document.querySelectorAll('nav a').forEach((a) => { if (a.getAttribute('href') === '#' + v) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
@@ -385,8 +464,13 @@ function route() {
 }
 
 /* ---------- Harmony ---------- */
+// Opponents race you: each one looks for a Harmony on its own clock (quick players sooner, and
+// longer when few are showing), then lifts its three cards in its own color.
 const Harmony = (() => {
-  let deck, board, sel, score, hintStep, busy = false, round = 0, started = false;
+  let deck, board, sel, scores, hintStep, busy = false, round = 0, started = false, shown = false;
+  let bots = [], timers = [];
+  const opp = Opponents('harmony', { max: 3, onChange: () => newGame() });
+  const players = () => [YOU].concat(bots);
   const ok = (a, b, c) => { const x = M[a] ^ M[b] ^ M[c]; return x === 0 || ($('h-eclipse').checked && x === FULL); };
   // board holds card ids by slot; null is a face-down slot left by a found card with no replacement.
   const live = () => board.filter((x) => x != null);
@@ -403,16 +487,48 @@ const Harmony = (() => {
     while (live().length < 15 && deck.length) put();
     while (!sets().length && deck.length) { for (let k = 0; k < 3 && deck.length; k++) put(); }
   }
+  function stats() {
+    if (bots.length) scoreboard($('h-scores'), players(), scores);
+    else $('h-scores').innerHTML = `<span class="stat">Found <b id="h-score">${scores[0]}</b></span>`;
+    $('h-left').textContent = deck.length;
+  }
   function render(flash) {
     $('h-board').innerHTML = board.map((i) => i == null ? `<button class="card static empty" disabled aria-label="Empty slot">${BACK}</button>`
       : cardBtn(i, (sel.includes(i) ? 'sel ' : '') + (flash && flash.cls && flash.ids.includes(i) ? flash.cls : ''))).join('');
     if (flash && flash.fresh) fx(cardEls($('h-board'), flash.fresh), 'deal', flash.fresh.length > 3 ? 30 : 90);
-    $('h-score').textContent = score; $('h-left').textContent = deck.length;
+    stats();
   }
   function newGame() {
-    deck = shuffle(all()); board = []; sel = []; score = 0; hintStep = 0; busy = false; round++; settle();
-    say($('h-msg'), sets().length + ' Harmonies are hiding on this board.', 'info'); render({ fresh: board });
+    bots = opp.list(); scores = players().map(() => 0);
+    deck = shuffle(all()); board = []; sel = []; hintStep = 0; busy = false; round++; settle();
+    say($('h-msg'), sets().length + ' Harmonies are hiding on this board.' + (bots.length ? ` ${names(bots)} ${bots.length > 1 ? 'are' : 'is'} looking too.` : ''), 'info');
+    render({ fresh: board });
+    schedule();
   }
+  // ---- opponents ----
+  const findTime = (p, n, slow) => (4000 + (1 - p.speed) * 22000) * (Math.random() < p.focus ? 1 : 1.8) * (1 + 0.9 / n) * (0.6 + Math.random() * 0.8) * (slow || 1);
+  function schedule() {
+    timers.forEach(clearTimeout); timers = [];
+    const n = shown && bots.length ? sets().length : 0;
+    if (n) bots.forEach((p, k) => { timers[k] = setTimeout(() => botTry(k), findTime(p, n)); });
+  }
+  function botTry(k) {
+    if (busy) { timers[k] = setTimeout(() => botTry(k), 500); return; }
+    const p = bots[k], s = sets(); if (!s.length) return;
+    const ids = Math.random() < p.rash ? shuffle(live()).slice(0, 3) : s[rnd(s.length)];
+    busy = true;
+    // The opponent takes the board: any cards you had lifted go back down.
+    cardEls($('h-board'), sel).forEach((e) => e && e.classList.remove('sel')); sel = [];
+    say($('h-msg'), `${p.n} is picking…`, 'info');
+    const r = round;
+    ids.forEach((id, j) => setTimeout(() => {
+      if (r !== round) return;
+      const el = cardEls($('h-board'), [id])[0];
+      el.classList.remove('hint'); el.style.setProperty('--who', E[p.e].c); el.classList.add('sel', 'bot');
+    }, ms(j * 220)));
+    setTimeout(() => { if (r === round) judge(k + 1, ids); }, ms(2 * 220 + LIFT_MS));
+  }
+  // ---- your picks ----
   function pick(i) {
     if (busy) return;
     if (sel.includes(i)) sel = sel.filter((x) => x !== i); else sel.push(i);
@@ -422,17 +538,20 @@ const Harmony = (() => {
     if (sel.length < 3) return;
     // Let the third card finish lifting before the result (ring, message, shake or leave) shows.
     busy = true;
-    const r = round;
-    setTimeout(() => { if (r === round) judge(); }, ms(LIFT_MS)); // skipped if a new game began meanwhile
+    const r = round, ids = sel;
+    setTimeout(() => { if (r === round) judge(0, ids); }, ms(LIFT_MS)); // skipped if a new game began meanwhile
   }
-  function judge() {
-    const [a, b, c] = sel, els = cardEls($('h-board'), sel);
+  // who: 0 for you, k for opponent k.
+  function judge(who, ids) {
+    const [a, b, c] = ids, els = cardEls($('h-board'), ids), p = who ? bots[who - 1] : null;
+    sel = [];
+    els.forEach((e) => e.classList.remove('bot'));
     if (ok(a, b, c)) {
-      const ecl = (M[a] ^ M[b] ^ M[c]) === FULL;
-      score++; hintStep = 0;
+      const ecl = (M[a] ^ M[b] ^ M[c]) === FULL, what = ecl ? 'Eclipse!' : 'Harmony!';
+      scores[who]++; hintStep = 0;
       els.forEach((e) => e.classList.add('ok'));
-      say($('h-msg'), ecl ? 'Eclipse!' : 'Harmony!', 'good');
-      const done = sel, r = round; sel = [];
+      say($('h-msg'), p ? `${p.n} found ${ecl ? 'an Eclipse' : 'a Harmony'}.` : what, p ? 'info' : 'good');
+      const done = ids, r = round;
       const t0 = MOTION ? 250 : 450; // let the green ring show first
       const finish = () => {
         if (r !== round) return; // a new game started meanwhile
@@ -441,10 +560,10 @@ const Harmony = (() => {
         settle(); // tops up, or adds three if no Harmony is showing
         const fresh = live().filter((x) => !before.has(x));
         const left = sets().length;
-        if (!left) say($('h-msg'), `Deck cleared. You found ${score}.`, 'good');
-        else say($('h-msg'), (ecl ? 'Eclipse! ' : 'Harmony! ') + left + ' more on the board.', 'good');
-        if (fresh.length) render({ fresh });
-        else { $('h-score').textContent = score; $('h-left').textContent = deck.length; }
+        if (!left) say($('h-msg'), 'Deck cleared. ' + (bots.length ? standings(players(), scores) : `You found ${scores[0]}.`), bots.length && scores[0] < Math.max(...scores) ? 'bad' : 'good');
+        else say($('h-msg'), (p ? `${p.n} found one. ` : what + ' ') + left + ' more on the board.', p ? 'info' : 'good');
+        if (fresh.length) render({ fresh }); else stats();
+        schedule();
       };
       // Each found card flips over in its own slot, so nothing else moves: it comes up as a new card
       // while the board has fewer than 15 and the deck has cards, and otherwise stays face down.
@@ -469,9 +588,14 @@ const Harmony = (() => {
       const odd = E.filter((_, e) => x >> e & 1).map((e) => e.n);
       els.forEach((e) => e.classList.add('no'));
       fx(els, 'shake');
-      say($('h-msg'), 'Not quite: ' + odd.join(', ') + (odd.length === 1 ? ' appears' : ' appear') + ' an odd number of times.', 'bad');
-      sel = [];
-      setTimeout(() => { busy = false; els.forEach((e) => e.classList.remove('sel', 'no')); }, 650);
+      if (p) say($('h-msg'), `${p.n} grabbed three that don’t match. Your chance!`, 'good');
+      else say($('h-msg'), 'Not quite: ' + odd.join(', ') + (odd.length === 1 ? ' appears' : ' appear') + ' an odd number of times.', 'bad');
+      const r = round;
+      setTimeout(() => {
+        if (r !== round) return;
+        busy = false; els.forEach((e) => e.classList.remove('sel', 'no'));
+        if (p && shown) { clearTimeout(timers[who - 1]); timers[who - 1] = setTimeout(() => botTry(who - 1), findTime(p, sets().length, 1.6)); }
+      }, 650);
     }
   }
   function hint() {
@@ -482,22 +606,36 @@ const Harmony = (() => {
     render({ cls: 'hint', ids: show });
     say($('h-msg'), hintStep === 1 ? 'This card is part of one.' : 'These two belong together. Which card completes them?', 'info');
   }
-  $('h-board').addEventListener('click', (ev) => { const b = ev.target.closest('.card'); if (b) pick(+b.dataset.i); });
+  $('h-board').addEventListener('click', (ev) => { const b = ev.target.closest('.card'); if (b && !b.disabled) pick(+b.dataset.i); });
   $('h-new').onclick = newGame; $('h-hint').onclick = hint;
-  $('h-eclipse').onchange = () => { settle(); say($('h-msg'), sets().length + ' matches on the board.', 'info'); render(); };
-  return { init() { if (!started) { started = true; newGame(); } } };
+  $('h-eclipse').onchange = () => { if (busy) return; settle(); say($('h-msg'), sets().length + ' matches on the board.', 'info'); render(); schedule(); };
+  return {
+    init() { shown = true; if (!started) { started = true; newGame(); } else schedule(); },
+    pause() { shown = false; timers.forEach(clearTimeout); timers = []; },
+  };
 })();
 
 /* ---------- Mirror ---------- */
+// With opponents, players take turns and a pair earns another turn. Each opponent remembers a
+// card it has seen (anyone's flip) with its memory chance, and forgets a little each turn.
 const Mirror = (() => {
-  let cards, up, done, moves, lock, started = false;
+  let cards, up, done, moves, lock, started = false, bots = [], pairs, turn, mem, gen = 0;
+  const opp = Opponents('mirror', { max: 3, onChange: () => newGame() });
+  const players = () => [YOU].concat(bots);
   function newGame() {
+    bots = opp.list(); gen++;
     const k = +$('m-size').value;
     const reps = shuffle(all().filter((i) => i < oppOf[i])).slice(0, k);
     cards = shuffle(reps.flatMap((i) => [i, oppOf[i]]));
-    up = []; done = new Set(); moves = 0; lock = false;
-    say($('m-msg'), 'Find each card’s opposite.', 'info'); render();
+    up = []; done = new Set(); moves = 0; lock = false; turn = 0;
+    pairs = players().map(() => 0); mem = bots.map(() => new Map());
+    say($('m-msg'), bots.length ? 'You go first. Find each card’s opposite.' : 'Find each card’s opposite.', 'info'); render();
     fx([...$('m-board').children], 'deal', 25);
+  }
+  function stats() {
+    $('m-turns').hidden = bots.length > 0;
+    if (bots.length) scoreboard($('m-scores'), players(), pairs, done.size < cards.length ? turn : -1); else $('m-scores').innerHTML = '';
+    $('m-moves').textContent = moves; $('m-pairs').textContent = done.size / 2 + ' / ' + cards.length / 2;
   }
   function render(flash) {
     $('m-board').innerHTML = cards.map((i, p) => {
@@ -506,118 +644,169 @@ const Mirror = (() => {
       return shown ? `<button class="card ${cls}" data-p="${p}" aria-label="${cardName(i)}" ${done.has(p) ? 'disabled' : ''}>${face(i)}</button>`
         : `<button class="card" data-p="${p}" aria-label="Face-down card">${BACK}</button>`;
     }).join('');
-    $('m-moves').textContent = moves; $('m-pairs').textContent = done.size / 2 + ' / ' + cards.length / 2;
+    stats();
   }
   const btn = (p) => $('m-board').querySelector(`[data-p="${p}"]`);
-  // A mismatched pair stays face up until the next tap, which turns it back down.
+  // A mismatched pair stays face up until the next tap, which turns it back down (and, with
+  // opponents, passes the turn).
   function hidePair() {
     up.forEach((q) => { const e = btn(q); e.classList.remove('no'); e.setAttribute('aria-label', 'Face-down card'); turnOver(e, BACK); });
     up = []; say($('m-msg'), '', '');
+    if (bots.length) nextTurn();
   }
   // Turning a card face up only swaps that card, so a quick second tap isn't lost to a redraw.
-  // Tapping a new card while a mismatched pair is showing hides the pair and turns the new card up.
-  function flip(p) {
-    if (lock || done.has(p)) return;
-    if (up.length === 2) { const pair = up.includes(p); hidePair(); if (pair) return; }
-    if (up.includes(p)) return;
+  function reveal(p) {
     up.push(p);
     const el = btn(p); el.setAttribute('aria-label', cardName(cards[p]));
     turnOver(el, face(cards[p]));
-    if (up.length < 2) return;
-    moves++; lock = true;
-    const [a, b] = up;
+    mem.forEach((m, k) => { if (Math.random() < bots[k].memory) m.set(p, cards[p]); });
+    if (up.length === 2) { moves++; check(); }
+  }
+  function check() {
+    lock = true;
+    const [a, b] = up, g = gen, p = turn ? bots[turn - 1] : null;
     setTimeout(() => {
+      if (g !== gen) return;
       if ((M[cards[a]] ^ M[cards[b]]) === FULL) {
-        done.add(a); done.add(b); up = []; lock = false;
-        if (done.size === cards.length) say($('m-msg'), `All ${cards.length / 2} pairs in ${moves} turns.`, 'good');
-        else say($('m-msg'), 'Opposites!', 'good');
+        done.add(a); done.add(b); up = []; pairs[turn]++;
+        mem.forEach((m) => { m.delete(a); m.delete(b); });
         render(); fx([btn(a), btn(b)], 'bounce');
+        if (done.size === cards.length) { lock = false; say($('m-msg'), bots.length ? 'All pairs found. ' + standings(players(), pairs) : `All ${cards.length / 2} pairs in ${moves} turns.`, pairs[0] < Math.max(...pairs) ? 'bad' : 'good'); return; }
+        if (p) { say($('m-msg'), `${p.n} found a pair and goes again.`, 'info'); setTimeout(() => botMove(g), 900); }
+        else { lock = false; say($('m-msg'), bots.length ? 'Opposites! Go again.' : 'Opposites!', 'good'); }
       } else {
         render(up); fx([btn(a), btn(b)], 'shake');
-        say($('m-msg'), `They share ${share(cards[a], cards[b])} emblem${share(cards[a], cards[b]) === 1 ? '' : 's'}. Opposites share none. Tap to turn them back.`, 'bad');
+        const s = share(cards[a], cards[b]), what = `share ${s} emblem${s === 1 ? '' : 's'}`;
+        say($('m-msg'), p ? `${p.n} missed: they ${what}. Tap to turn them back.` : `They ${what}. Opposites share none. Tap to turn them back.`, p ? 'info' : 'bad');
         lock = false;
       }
     }, ms(460));
   }
+  function nextTurn() {
+    turn = (turn + 1) % players().length; stats();
+    if (!turn) { say($('m-msg'), 'Your turn.', 'info'); return; }
+    lock = true; say($('m-msg'), `${bots[turn - 1].n}’s turn.`, 'info');
+    const g = gen; setTimeout(() => botMove(g), 800);
+  }
+  // An opponent flips a pair it remembers if it knows one, else an unseen card; then the first
+  // card's opposite if it remembers where that is (a rash player may fumble it), else a guess.
+  function botMove(g) {
+    if (g !== gen) return;
+    const p = bots[turn - 1], m = mem[turn - 1];
+    m.forEach((_, q) => { if (Math.random() < (1 - p.memory) * 0.25) m.delete(q); });
+    const open = cards.map((_, q) => q).filter((q) => !done.has(q));
+    const known = [...m.keys()];
+    const unseen = (but) => { const f = open.filter((q) => q !== but && !m.has(q)); return f.length ? f : open.filter((q) => q !== but); };
+    let first = known.find((q) => known.some((r) => r !== q && m.get(r) === oppOf[m.get(q)]));
+    if (first == null) { const f = unseen(); first = f[rnd(f.length)]; }
+    reveal(first);
+    setTimeout(() => {
+      if (g !== gen) return;
+      const match = [...m.keys()].find((q) => q !== first && m.get(q) === oppOf[cards[first]]);
+      let second = match;
+      if (match == null || Math.random() < p.rash * 0.5) { const f = unseen(first); second = f[rnd(f.length)]; }
+      reveal(second);
+    }, 750);
+  }
+  function tap(p) {
+    if (lock) return;
+    if (up.length === 2) { const pair = up.includes(p); hidePair(); if (pair || bots.length) return; }
+    if (turn || done.has(p) || up.includes(p)) return;
+    reveal(p);
+  }
   $('m-board').closest('.felt').addEventListener('click', (ev) => {
     const b = ev.target.closest('.card');
-    if (b) { if (!b.disabled) flip(+b.dataset.p); } else if (up.length === 2 && !lock) hidePair(); // a tap on the table
+    if (b) { if (!b.disabled) tap(+b.dataset.p); } else if (up.length === 2 && !lock) hidePair(); // a tap on the table
   });
   $('m-new').onclick = newGame; $('m-size').onchange = newGame;
   return { init() { if (!started) { started = true; newGame(); } } };
 })();
 
 /* ---------- Echo ---------- */
+// Each opponent notices a slappable pair with its focus chance and slaps after a reaction time
+// set by its speed; a rash one sometimes slaps a near miss (two shared) and loses a point.
 const Echo = (() => {
-  let deck, pile, you, bot, running = false, timer = null, botTimer = null, window_ = null, over = true;
+  let deck, pile, scores, bots = [], running = false, timer = null, timers = [], window_ = null, over = true;
+  const opp = Opponents('echo', { max: 3, def: ['wren'], onChange: () => reset() });
+  const players = () => [YOU].concat(bots);
+  const reaction = (p, iv) => 280 + (1 - p.speed) * iv * 0.55 + Math.random() * iv * 0.35;
+  const stopBots = () => { timers.forEach(clearTimeout); timers = []; };
   function show() {
     const t = pile[pile.length - 1], u = pile[pile.length - 2];
     $('e-top').innerHTML = t != null ? `<div class="card static" aria-label="${cardName(t)}">${face(t)}</div>` : `<div class="card static">${BACK}</div>`;
     $('e-under').innerHTML = u != null ? `<div class="card static" aria-label="${cardName(u)}">${face(u)}</div>` : `<div class="card static" style="opacity:.25">${BACK}</div>`;
-    $('e-you').textContent = you; $('e-bot').textContent = bot; $('e-left').textContent = deck ? deck.length : 70;
+    scoreboard($('e-scores'), players(), scores); $('e-left').textContent = deck ? deck.length : 70;
   }
   function reset() {
-    clearTimeout(timer); clearTimeout(botTimer);
-    deck = shuffle(all()); pile = []; you = 0; bot = 0; window_ = null; over = false; running = false;
+    clearTimeout(timer); stopBots();
+    bots = opp.list(); scores = players().map(() => 0);
+    deck = shuffle(all()); pile = []; window_ = null; over = false; running = false;
     $('e-start').textContent = 'Start'; show();
-    say($('e-msg'), 'Press Start. The bot is quick, but it blinks sometimes.', 'info');
+    say($('e-msg'), bots.length ? `Press Start. You’re playing ${names(bots)}.` : 'Press Start to practice on your own.', 'info');
   }
   function flipNext() {
-    clearTimeout(botTimer);
+    stopBots();
     if (window_ && !window_.taken) say($('e-msg'), window_.pts === 3 ? 'Missed an opposite pair!' : 'Missed one.', 'info');
     window_ = null;
     if (!deck.length) { finish(); return; }
     pile.push(deck.pop()); show();
     fx($('e-top').firstChild, 'flip-in');
+    const iv = +$('e-speed').value;
     if (pile.length >= 2) {
-      const a = pile[pile.length - 1], b = pile[pile.length - 2];
-      const s = share(a, b);
+      const s = share(pile[pile.length - 1], pile[pile.length - 2]);
       if (s === 3 || s === 0) {
         window_ = { pts: s === 0 ? 3 : 1, taken: false };
-        const speed = +$('e-speed').value;
-        if (Math.random() < 0.82) botTimer = setTimeout(() => slap('bot'), 380 + Math.random() * speed * 0.65);
-      }
+        bots.forEach((p, k) => { if (Math.random() < p.focus) { const t = reaction(p, iv); if (t < iv - 60) timers.push(setTimeout(() => slap(k + 1), t)); } });
+      } else if (s === 2) bots.forEach((p, k) => { if (Math.random() < p.rash * 0.4) timers.push(setTimeout(() => slap(k + 1), Math.min(reaction(p, iv), iv - 60))); });
     }
-    timer = setTimeout(flipNext, +$('e-speed').value);
+    timer = setTimeout(flipNext, iv);
   }
+  // who: 0 for you, k for opponent k.
   function slap(who) {
     if (!running) return;
+    const p = who ? bots[who - 1] : null;
     if (window_ && !window_.taken) {
-      window_.taken = true; clearTimeout(botTimer);
-      if (who === 'you') { you += window_.pts; say($('e-msg'), window_.pts === 3 ? 'Opposites! +3' : 'Three shared. +1', 'good'); }
-      else { bot += window_.pts; say($('e-msg'), 'The bot got there first' + (window_.pts === 3 ? ' (+3).' : '.'), 'bad'); }
+      window_.taken = true; stopBots();
+      scores[who] += window_.pts;
+      if (p) say($('e-msg'), `${p.n} got there first` + (window_.pts === 3 ? ' (+3).' : '.'), 'bad');
+      else say($('e-msg'), window_.pts === 3 ? 'Opposites! +3' : 'Three shared. +1', 'good');
       show(); fx([$('e-under').firstChild, $('e-top').firstChild], 'bounce');
-    } else if (who === 'you') {
+    } else {
       const t = pile[pile.length - 1], u = pile[pile.length - 2];
-      you -= 1;
-      say($('e-msg'), (window_ && window_.taken) ? 'Too late. −1' : (u == null ? 'Nothing to slap yet. −1' : `Those share ${share(t, u)}. −1`), 'bad');
+      scores[who] -= 1;
+      if (p) say($('e-msg'), `${p.n} slapped too soon: those share ${share(t, u)}. −1`, 'good');
+      else say($('e-msg'), (window_ && window_.taken) ? 'Too late. −1' : (u == null ? 'Nothing to slap yet. −1' : `Those share ${share(t, u)}. −1`), 'bad');
       show(); fx([$('e-under').firstChild, $('e-top').firstChild], 'shake');
     }
   }
   function finish() {
     running = false; over = true; $('e-start').textContent = 'Play again';
-    say($('e-msg'), you > bot ? `You win, ${you} to ${bot}.` : you < bot ? `The bot wins, ${bot} to ${you}.` : `A tie at ${you}.`, you >= bot ? 'good' : 'bad');
+    if (!bots.length) { say($('e-msg'), `Deck done: you scored ${scores[0]}.`, 'good'); return; }
+    say($('e-msg'), standings(players(), scores), scores[0] >= Math.max(...scores) ? 'good' : 'bad');
   }
   function toggle() {
     running = !running;
     $('e-start').textContent = running ? 'Pause' : 'Resume';
-    if (running) { say($('e-msg'), '', ''); timer = setTimeout(flipNext, 500); } else { clearTimeout(timer); clearTimeout(botTimer); }
+    if (running) { say($('e-msg'), '', ''); timer = setTimeout(flipNext, 500); } else { clearTimeout(timer); stopBots(); }
   }
   $('e-start').onclick = () => { if (over) reset(); toggle(); };
-  $('e-slap').onclick = () => slap('you');
+  $('e-slap').onclick = () => slap(0);
   document.addEventListener('keydown', (ev) => {
-    if (current !== 'echo' || ev.code !== 'Space' || ev.target.closest('select,input')) return;
-    ev.preventDefault(); slap('you');
+    if (current !== 'echo' || ev.code !== 'Space' || ev.target.closest('select,input,button')) return;
+    ev.preventDefault(); slap(0);
   });
   let started = false;
   return { init() { if (!started) { started = true; reset(); } }, pause() { if (running) toggle(); } };
 })();
 
 /* ---------- Seek ---------- */
+// One opponent. A logical one asks the card that splits its remaining candidates most evenly;
+// otherwise it asks about a card it still thinks could be yours. A rash one jumps to naming a
+// card early, and a forgetful one may lose track of an answer (it keeps more candidates).
 const Seek = (() => {
-  let mine, theirs, myCand, botCand, asked, log, over, started = false;
-  function botQuery() {
-    if ($('s-level').value === 'casual' || botCand.length <= 2) return botCand[rnd(botCand.length)];
+  let mine, theirs, myCand, botCand, botAsked, asked, log, over, waiting, bot, started = false;
+  const opp = Opponents('seek', { min: 1, max: 1, def: ['sage'], onChange: () => newGame() });
+  function sharpQuery() {
     let best = null, bestScore = 1e9;
     for (let q = 0; q < N; q++) {
       const parts = [0, 0, 0, 0, 0];
@@ -628,6 +817,12 @@ const Seek = (() => {
     }
     return best;
   }
+  function botQuery() {
+    const fresh = botCand.filter((c) => !botAsked.has(c)), guess = () => fresh[rnd(fresh.length)];
+    if (fresh.length <= 2) return guess();
+    if (botCand.length <= 10 && Math.random() < bot.rash) return guess(); // a hunch
+    return Math.random() < bot.logic ? sharpQuery() : guess();
+  }
   function render() {
     const helper = $('s-helper').checked;
     $('s-grid').innerHTML = all().map((i) => {
@@ -636,55 +831,65 @@ const Seek = (() => {
     }).join('');
     $('s-mine').innerHTML = `<div class="card static" aria-label="${cardName(mine)}">${face(mine)}</div>`;
     $('s-theirs').innerHTML = over ? `<div class="card static" aria-label="${cardName(theirs)}">${face(theirs)}</div>` : `<div class="card static" aria-label="Hidden">${BACK}</div>`;
-    $('s-counts').textContent = `It could be one of ${myCand.length} for you · the bot is down to ${botCand.length}.`;
-    $('s-log').innerHTML = log.map((r) => `<div><span class="mini">${'<div class="card static">' + face(r.q) + '</div>'}</span><span>${r.who === 'you' ? 'You asked' : 'Bot asked'}: <b style="color:var(--cream)">${r.a === 4 ? 'that’s it' : r.a + ' shared'}</b></span></div>`).reverse().join('');
+    $('s-their-label').textContent = `${bot.n}’s secret`;
+    $('s-counts').textContent = `It could be one of ${myCand.length} for you · ${bot.n} is down to ${botCand.length}.`;
+    $('s-log').innerHTML = log.map((r) => `<div><span class="mini">${'<div class="card static">' + face(r.q) + '</div>'}</span><span>${r.who === 'you' ? 'You asked' : bot.n + ' asked'}: <b style="color:var(--cream)">${r.a === 4 ? 'that’s it' : r.a + ' shared'}</b></span></div>`).reverse().join('');
   }
   function newGame() {
+    bot = opp.list()[0];
     mine = rnd(N); do { theirs = rnd(N); } while (theirs === mine);
-    myCand = all(); botCand = all(); asked = new Set(); log = []; over = false;
-    say($('s-msg'), 'Your turn. Tap any card to ask about it.', 'info'); render();
+    myCand = all(); botCand = all(); botAsked = new Set(); asked = new Set(); log = []; over = false; waiting = false;
+    say($('s-msg'), `Your turn against ${bot.n}. Tap any card to ask about it.`, 'info'); render();
     fx([$('s-mine').firstChild, $('s-theirs').firstChild], 'deal', 120);
   }
   function ask(q) {
-    if (over) return;
+    if (over || waiting) return;
     const a = share(q, theirs); asked.add(q);
     log.push({ who: 'you', q, a });
     myCand = myCand.filter((c) => share(q, c) === a);
     if (a === 4) { over = true; say($('s-msg'), `Found it in ${log.filter((r) => r.who === 'you').length} questions. You win!`, 'good'); render(); fx($('s-theirs').firstChild, 'flip-in'); return; }
-    render();
+    render(); waiting = true;
+    const g = mine;
     setTimeout(() => {
+      if (g !== mine || over) return; // a new game began meanwhile
+      waiting = false;
       const bq = botQuery(); const ba = share(bq, mine);
+      botAsked.add(bq);
       log.push({ who: 'bot', q: bq, a: ba });
-      botCand = botCand.filter((c) => share(bq, c) === ba);
-      if (ba === 4) { over = true; say($('s-msg'), 'The bot named your card. It wins this one.', 'bad'); }
-      else say($('s-msg'), `Bot asked about a card: it shares ${ba} with yours. Your turn.`, 'info');
+      if (Math.random() < 0.3 + bot.memory || ba === 4) botCand = botCand.filter((c) => share(bq, c) === ba);
+      if (ba === 4) { over = true; say($('s-msg'), `${bot.n} named your card and wins this one.`, 'bad'); }
+      else say($('s-msg'), `${bot.n} asked about a card: it shares ${ba} with yours. Your turn.`, 'info');
       render();
       if (over) fx($('s-theirs').firstChild, 'flip-in');
     }, 650);
   }
   $('s-grid').addEventListener('click', (ev) => { const b = ev.target.closest('.card'); if (b && !b.disabled) ask(+b.dataset.i); });
-  $('s-new').onclick = newGame; $('s-helper').onchange = render; $('s-level').onchange = newGame;
+  $('s-new').onclick = newGame; $('s-helper').onchange = render;
   return { init() { if (!started) { started = true; newGame(); } } };
 })();
 
 /* ---------- Clans ---------- */
+// One to three opponents play after you in turn. Greed sets how readily one takes the discard;
+// low logic means it may overlook a meld or throw away a useful card.
 const Clans = (() => {
-  let deck, disc, hand, bhand, melds, phase, sel, turn, over, wins = 0, losses = 0, started = false;
+  let deck, disc, hand, bots = [], melds, phase, sel, turn, over, wins = 0, losses = 0, started = false, gen = 0;
   let shownMelds = 0, shownTop = null; // what render last drew, so new melds and discards animate once
+  const opp = Opponents('clans', { min: 1, max: 3, def: ['wren'], onChange: () => newGame() });
   const tripleOf = (ids) => { let x = FULL; ids.forEach((i) => { x &= M[i]; }); return pop(x) === 3 ? x : 0; };
   const fits = (i, m) => m.type === 'clan' && (M[i] & m.t) === m.t;
   function draw() { if (!deck.length) { const top = disc.pop(); deck = shuffle(disc); disc = [top]; } return deck.pop(); }
   function newGame() {
+    gen++;
     deck = shuffle(all()); disc = []; melds = []; sel = []; over = false;
-    hand = deck.splice(-7); bhand = deck.splice(-7); disc.push(deck.pop());
-    turn = 'you'; phase = 'draw'; shownMelds = 0;
-    say($('c-msg'), 'Your turn: draw from the deck or take the top discard.', 'info'); render();
+    hand = deck.splice(-7); bots = opp.list().map((p) => ({ p, hand: deck.splice(-7) })); disc.push(deck.pop());
+    turn = 0; phase = 'draw'; shownMelds = 0;
+    say($('c-msg'), `Playing ${names(bots.map((b) => b.p))}. Your turn: draw from the deck or take the top discard.`, 'info'); render();
     fx([...$('c-hand').children], 'deal', 45);
   }
   function meldHTML(m, k) {
-    const target = phase === 'play' && turn === 'you' && sel.length === 1 && fits(sel[0], m);
+    const target = phase === 'play' && turn === 0 && sel.length === 1 && fits(sel[0], m);
     const lab = m.type === 'clan' ? `<span class="icons">${E.map((_, e) => (m.t >> e & 1) ? iconSVG(e, 20) : '').join('')}</span>` : '<span class="pill">Opposites</span>';
-    return `<div class="meld ${target ? 'target' : ''}" data-k="${k}" ${target ? 'role="button" tabindex="0" aria-label="Add to this clan"' : ''}>${lab}<div class="cards">${m.cards.map((i) => `<div class="card static" aria-label="${cardName(i)}">${face(i)}</div>`).join('')}</div><span class="label" style="font-size:11px">${m.owner === 'you' ? 'yours' : 'bot'}</span></div>`;
+    return `<div class="meld ${target ? 'target' : ''}" data-k="${k}" ${target ? 'role="button" tabindex="0" aria-label="Add to this clan"' : ''}>${lab}<div class="cards">${m.cards.map((i) => `<div class="card static" aria-label="${cardName(i)}">${face(i)}</div>`).join('')}</div><span class="label" style="font-size:11px">${m.owner === 'you' ? 'yours' : m.owner}</span></div>`;
   }
   function render() {
     hand.sort((a, b) => a - b);
@@ -698,12 +903,13 @@ const Clans = (() => {
     shownMelds = melds.length;
     $('c-deck').innerHTML = BACK;
     const top = disc[disc.length - 1];
-    $('c-discard').innerHTML = top != null ? cardBtn(top, phase === 'draw' && turn === 'you' && !over ? 'hint' : 'static', 'Take ' + cardName(top)) : '';
+    $('c-discard').innerHTML = top != null ? cardBtn(top, phase === 'draw' && turn === 0 && !over ? 'hint' : 'static', 'Take ' + cardName(top)) : '';
     if (top != null && top !== shownTop) fx($('c-discard').firstChild, 'flip-in');
     shownTop = top;
-    $('c-bothand').textContent = bhand.length; $('c-left').textContent = deck.length;
+    scoreboard($('c-scores'), bots.map((b) => b.p), bots.map((b) => b.hand.length), turn - 1);
+    $('c-left').textContent = deck.length;
     $('c-wins').textContent = wins; $('c-losses').textContent = losses;
-    const play = phase === 'play' && turn === 'you' && !over;
+    const play = phase === 'play' && turn === 0 && !over;
     $('c-meld').disabled = !play || !meldable(sel);
     $('c-addto').disabled = !play || !(sel.length === 1 && melds.some((m) => fits(sel[0], m)));
     $('c-discard-btn').disabled = !play || sel.length !== 1;
@@ -713,15 +919,16 @@ const Clans = (() => {
     const m = ids.length === 2 && (M[ids[0]] ^ M[ids[1]]) === FULL ? { type: 'pair', cards: ids.slice(), owner } : { type: 'clan', t: tripleOf(ids), cards: ids.slice(), owner };
     melds.push(m);
   }
+  // who: 0 for you, k for opponent k.
   function checkWin(who) {
-    const h = who === 'you' ? hand : bhand;
+    const h = who ? bots[who - 1].hand : hand;
     if (h.length) return false;
     over = true;
-    if (who === 'you') { wins++; say($('c-msg'), 'You went out. You win!', 'good'); } else { losses++; say($('c-msg'), 'The bot went out first.', 'bad'); }
+    if (!who) { wins++; say($('c-msg'), 'You went out. You win!', 'good'); } else { losses++; say($('c-msg'), `${bots[who - 1].p.n} went out first.`, 'bad'); }
     render(); return true;
   }
   function takeFrom(src) {
-    if (over || turn !== 'you' || phase !== 'draw') return;
+    if (over || turn !== 0 || phase !== 'draw') return;
     const c = src === 'deck' ? draw() : disc.pop();
     hand.push(c); sel = [c]; phase = 'play';
     say($('c-msg'), 'Lay down any melds, then discard one card.', 'info'); render();
@@ -730,19 +937,19 @@ const Clans = (() => {
   $('c-deck').onclick = () => takeFrom('deck');
   $('c-discard').addEventListener('click', (ev) => { if (ev.target.closest('.card')) takeFrom('disc'); });
   $('c-hand').addEventListener('click', (ev) => {
-    const b = ev.target.closest('.card'); if (!b || over || turn !== 'you') return;
+    const b = ev.target.closest('.card'); if (!b || over || turn !== 0) return;
     const i = +b.dataset.i; sel = sel.includes(i) ? sel.filter((x) => x !== i) : sel.concat(i);
     b.classList.toggle('sel', sel.includes(i)); renderTable();
   });
   $('c-meld').onclick = () => {
     if (!meldable(sel)) return;
     lay('you', sel); hand = hand.filter((x) => !sel.includes(x)); sel = [];
-    if (!checkWin('you')) { say($('c-msg'), 'Laid down. Keep going, or discard to end your turn.', 'good'); render(); }
+    if (!checkWin(0)) { say($('c-msg'), 'Laid down. Keep going, or discard to end your turn.', 'good'); render(); }
   };
   function addTo(k) {
     const m = melds[k]; if (!(sel.length === 1 && fits(sel[0], m))) return;
     m.cards.push(sel[0]); hand = hand.filter((x) => x !== sel[0]); sel = [];
-    if (!checkWin('you')) render();
+    if (!checkWin(0)) render();
   }
   $('c-melds').addEventListener('click', (ev) => { const d = ev.target.closest('.meld.target'); if (d) addTo(+d.dataset.k); });
   $('c-melds').addEventListener('keydown', (ev) => { const d = ev.target.closest('.meld.target'); if (d && (ev.key === 'Enter' || ev.key === ' ')) { ev.preventDefault(); addTo(+d.dataset.k); } });
@@ -750,10 +957,11 @@ const Clans = (() => {
   $('c-discard-btn').onclick = () => {
     if (sel.length !== 1) return;
     disc.push(sel[0]); hand = hand.filter((x) => x !== sel[0]); sel = [];
-    if (checkWin('you')) return;
-    turn = 'bot'; phase = 'wait'; render(); setTimeout(botTurn, 700);
+    if (checkWin(0)) return;
+    turn = 1; phase = 'wait'; render();
+    const g = gen; setTimeout(() => botTurn(1, g), 700);
   };
-  // ---- bot ----
+  // ---- opponents ----
   function bestMelds(h) {
     const out = []; let rest = h.slice();
     for (const i of rest.slice()) { const o = oppOf[i]; if (rest.includes(i) && rest.includes(o)) { out.push([i, o]); rest = rest.filter((x) => x !== i && x !== o); } }
@@ -766,32 +974,35 @@ const Clans = (() => {
     }
     return { out, rest };
   }
-  function useful(i, h) { // how much a card helps the bot's hand
+  function useful(i, h) { // how much a card helps a hand
     let s = 0;
     h.forEach((j) => { if (j !== i) { const k = share(i, j); if (k === 3) s += 2; if (k === 0) s += 3; } });
     melds.forEach((m) => { if (fits(i, m)) s += 4; });
     return s;
   }
-  function botTurn() {
-    if (over) return;
-    const top = disc[disc.length - 1];
-    let took;
-    if (top != null && (useful(top, bhand) >= 4 || bestMelds(bhand.concat(top)).out.length > bestMelds(bhand).out.length)) { took = disc.pop(); bhand.push(took); say($('c-msg'), 'The bot took your discard.', 'info'); }
-    else { bhand.push(draw()); say($('c-msg'), 'The bot drew from the deck.', 'info'); }
+  function botTurn(k, g) {
+    if (over || g !== gen) return;
+    const b = bots[k - 1], p = b.p, top = disc[disc.length - 1];
+    const want = top != null && (useful(top, b.hand) >= 4 + (0.5 - p.greed) * 6 ||
+      (Math.random() < p.logic + 0.3 && bestMelds(b.hand.concat(top)).out.length > bestMelds(b.hand).out.length));
+    if (want) { b.hand.push(disc.pop()); say($('c-msg'), `${p.n} took the discard.`, 'info'); }
+    else { b.hand.push(draw()); say($('c-msg'), `${p.n} drew from the deck.`, 'info'); }
     render();
     setTimeout(() => {
-      const { out } = bestMelds(bhand);
-      out.forEach((ids) => { lay('bot', ids); bhand = bhand.filter((x) => !ids.includes(x)); });
-      let laid = out.length;
-      for (const i of bhand.slice()) { const m = melds.find((mm) => fits(i, mm)); if (m) { m.cards.push(i); bhand = bhand.filter((x) => x !== i); laid++; } }
-      if (laid) say($('c-msg'), `The bot laid down ${laid === 1 ? 'a meld' : laid + ' melds'}.`, 'info');
-      if (checkWin('bot')) return;
-      bhand.sort((a, b) => useful(a, bhand) - useful(b, bhand) || Math.random() - 0.5);
-      const d = bhand.shift(); disc.push(d);
-      if (checkWin('bot')) return;
-      turn = 'you'; phase = 'draw';
-      say($('c-msg'), (laid ? `The bot laid down ${laid === 1 ? 'a meld' : laid + ' melds'} and discarded.` : 'The bot discarded.') + ' Your turn: draw or take the discard.', 'info');
-      render();
+      if (over || g !== gen) return;
+      const spots = () => Math.random() < 0.55 + p.logic; // a careless player can overlook a meld
+      let laid = 0;
+      bestMelds(b.hand).out.forEach((ids) => { if (spots()) { lay(p.n, ids); b.hand = b.hand.filter((x) => !ids.includes(x)); laid++; } });
+      for (const i of b.hand.slice()) { const m = melds.find((mm) => fits(i, mm)); if (m && spots()) { m.cards.push(i); b.hand = b.hand.filter((x) => x !== i); laid++; } }
+      if (checkWin(k)) return;
+      let d;
+      if (Math.random() < 0.3 + p.logic) { b.hand.sort((x, y) => useful(x, b.hand) - useful(y, b.hand) || Math.random() - 0.5); d = b.hand.shift(); }
+      else d = b.hand.splice(rnd(b.hand.length), 1)[0];
+      disc.push(d);
+      if (checkWin(k)) return;
+      const did = laid ? `${p.n} laid down ${laid === 1 ? 'a meld' : laid + ' melds'} and discarded.` : `${p.n} discarded.`;
+      if (k < bots.length) { turn = k + 1; say($('c-msg'), did, 'info'); render(); setTimeout(() => botTurn(k + 1, g), 900); }
+      else { turn = 0; phase = 'draw'; say($('c-msg'), did + ' Your turn: draw or take the discard.', 'info'); render(); }
     }, 800);
   }
   $('c-new').onclick = newGame;
@@ -860,6 +1071,7 @@ const Deck = (() => {
   return { init };
 })();
 
+const PAUSE = { harmony: Harmony.pause, echo: Echo.pause };
 const INIT = { harmony: Harmony.init, mirror: Mirror.init, echo: Echo.init, seek: Seek.init, clans: Clans.init, loop: Loop.init, deck: Deck.init };
 window.addEventListener('hashchange', route);
 route();

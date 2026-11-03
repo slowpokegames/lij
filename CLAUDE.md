@@ -38,6 +38,24 @@ The i stands just clear of the L's foot; the j comes down to the foot's level an
 ## Games (all in `src/games.src.html`)
 Harmony (SET-like, 15-card board, optional Eclipses), Mirror (memory, match opposites), Echo (slap on share-3 = +1, opposites = +3, wrong −1), Seek (two-player deduction, ask "how many shared?"; optimal ≤5 questions), Clans (rummy: clan = 3+ cards sharing the same 3 emblems; opposite pair = 2-card meld), Great Loop (Hamiltonian cycle on the share-3 graph; hint uses look-ahead DFS that always finds a completion), plus a Deck browser.
 
+## Opponents
+`CAST` in `src/games.src.html`: five computer players, each named for an emblem, with traits speed, focus, rash, memory, logic, greed (0–1):
+- Pip (Flower): slow and forgetful, never rash. The beginner.
+- Wren (Leaves): steady, rarely wrong.
+- Ember (Fire): fast, greedy, rash.
+- Sage (Moon): slow hands, perfect memory and logic.
+- Frost (Snow): fast and exact. The toughest.
+
+`Opponents(game, {min, max, def})` draws the chip picker (`.opp[data-game]`) and remembers the pick in localStorage. Every game reads the same traits:
+
+| Game | Opponents | Default | How they play |
+|---|---|---|---|
+| Harmony | 0–3 | solo | Race you to Harmonies on their own timers. |
+| Mirror | 0–3 | solo | Take turns, and remember the cards they've seen. |
+| Echo | 0–3 | Wren | Each one reacts to the flipped cards on their own. |
+| Seek | exactly 1 | Sage | Ask questions about your card. |
+| Clans | 1–3 | Wren | Play after you, in order. |
+
 ## Build
 ```
 npm install && npx playwright install chromium

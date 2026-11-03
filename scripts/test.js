@@ -19,7 +19,7 @@ const {chromium}=require('playwright');const fs=require('fs');
  // Echo
  await p.goto('file://'+process.cwd()+'/t.html#echo');await p.waitForTimeout(300);
  await p.selectOption('#e-speed','950');await p.click('#e-start');await p.waitForTimeout(4500);await p.keyboard.press('Space');await p.waitForTimeout(300);
- console.log('echo',await p.textContent('#e-you'),await p.textContent('#e-bot'),await p.textContent('#e-left'),await p.textContent('#e-msg'));
+ console.log('echo',await p.textContent('#e-scores'),await p.textContent('#e-left'),await p.textContent('#e-msg'));
  await p.screenshot({path:'g-echo.png'});await p.click('#e-start');
  // Seek
  await p.goto('file://'+process.cwd()+'/t.html#seek');await p.waitForTimeout(300);
@@ -32,7 +32,7 @@ const {chromium}=require('playwright');const fs=require('fs');
    // deselect all, select first card, discard
    const sel=await p.$$('#c-hand .card.sel');for(const s of sel)await s.click();
    const hc=await p.$$('#c-hand .card');await hc[0].click();await p.click('#c-discard-btn');await p.waitForTimeout(1800);
-   console.log('clans turn',t,await p.textContent('#c-msg'),'bot',await p.textContent('#c-bothand'),'melds',(await p.$$('#c-melds .meld')).length);
+   console.log('clans turn',t,await p.textContent('#c-msg'),'holding',await p.textContent('#c-scores'),'melds',(await p.$$('#c-melds .meld')).length);
  }
  await p.screenshot({path:'g-clans.png'});
  // Loop
